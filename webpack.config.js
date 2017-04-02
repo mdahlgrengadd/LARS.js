@@ -3,7 +3,8 @@
         devtool: "cheap-module-eval-source-map",
         resolve: {
             alias: {
-              'wavesurfer': path.resolve(__dirname, './node_modules/wavesurfer.js/dist/wavesurfer.js')
+              'wavesurfer': path.resolve(__dirname, './node_modules/wavesurfer.js/dist/wavesurfer.js'),
+              'wavesurfer-regions': path.resolve(__dirname, './node_modules/wavesurfer.js/dist/plugin/wavesurfer.regions.min.js')
             }
           },
         module: {

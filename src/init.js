@@ -28,21 +28,31 @@ document.addEventListener('DOMContentLoaded', function () {
     // Load audio from URL
     wavesurfer.load('assets/demo.wav');
 
-    // Regions
-    if (wavesurfer.enableDragSelection) {
-        wavesurfer.enableDragSelection({
-            color: 'rgba(0, 255, 0, 0.1)'
+    wavesurfer.on('ready', function () {
+        wavesurfer.addRegion({
+            start: 0,
+            end: 5,
+            color: 'hsla(400, 100%, 30%, 0.1)'
         });
-    }
-});
 
-// Play at once when ready
-// Won't work on iOS until you touch the page
-wavesurfer.on('ready', function () {
-    wavesurfer.setPlaybackRate(0.5);
-    //wavesurfer.play();
-});
+        wavesurfer.addRegion({
+            start: 10,
+            end: 100,
+            color: 'hsla(200, 50%, 70%, 0.1)'
+        });
+    });
+    // Zoom slider
+    var slider = document.querySelector('[data-action="zoom"]');
 
+    slider.value = 1000;//wavesurfer.params.minPxPerSec;
+    slider.min = wavesurfer.params.minPxPerSec;
+
+    slider.addEventListener('input', function () {
+        //wavesurfer.zoom(Number(this.value));
+        wavesurfer.setPlaybackRate(Number(this.value)/1000);
+    });
+
+});
 // Report errors
 wavesurfer.on('error', function (err) {
     console.error(err);

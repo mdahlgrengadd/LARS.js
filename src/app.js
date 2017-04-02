@@ -1,4 +1,7 @@
 import wavesurfer from './init.js'
+import * as Region from 'wavesurfer-regions';
+
+console.log(Region);
 
 var GLOBAL_ACTIONS = {
     'play': function () {

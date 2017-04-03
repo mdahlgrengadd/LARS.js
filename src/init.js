@@ -26,7 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Init
     wavesurfer.init(options);
     // Load audio from URL
-    wavesurfer.load('assets/demo.wav');
+    //wavesurfer.load('assets/demo.wav');
+    wavesurfer.load('https://upload.wikimedia.org/wikipedia/commons/4/43/JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Prelude.ogg');
 
     wavesurfer.on('ready', function() {
         var reverbGain;
@@ -109,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
             input.setAttribute('orient', 'vertical');
             wavesurfer.drawer.style(input, {
                 'webkitAppearance': 'slider-vertical',
-                width: '50px',
+                width: '35px',
                 height: '150px'
             });
             container.appendChild(input);

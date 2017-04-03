@@ -9,13 +9,13 @@ var wavesurfer = Object.create(WaveSurfer.WaveSurfer);
 
 
 // Init & load audio file
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function() {
     var options = {
-        container     : document.querySelector('#waveform'),
-        waveColor     : 'violet',
-        progressColor : 'purple',
-        backend       : 'WebAudio',
-        cursorColor   : 'navy'
+        container: document.querySelector('#waveform'),
+        waveColor: 'violet',
+        progressColor: 'purple',
+        backend: 'WebAudio',
+        cursorColor: 'navy'
     };
 
     if (location.search.match('scroll')) {
@@ -28,53 +28,128 @@ document.addEventListener('DOMContentLoaded', function () {
     // Load audio from URL
     wavesurfer.load('assets/demo.wav');
 
-    wavesurfer.on('ready', function () {
-        wavesurfer.addRegion({
-            start: 0,
-            end: 5,
-            color: 'hsla(400, 100%, 30%, 0.1)'
+    wavesurfer.on('ready', function() {
+        var reverbGain;
+        var audioContext = wavesurfer.backend.getAudioContext();
+        reverbjs.extend(audioContext);
+        // 2) Load the impulse response; upon load, connect it to the audio output.
+        //var reverbUrl = "http://reverbjs.org/Library/KinoullAisle.m4a";
+        var reverbUrl = "http://reverbjs.org/Library/AbernyteGrainSilo.m4a";
+        var reverbNode = audioContext.createReverbFromUrl(reverbUrl, function() {
+            reverbGain = wavesurfer.backend.ac.createGain();
+            reverbGain.gain.value = 0.05;
+
+            reverbGain.connect(audioContext.destination);
+            reverbNode.connect(reverbGain);
+            wavesurfer.backend.gainNode.connect(reverbNode);
+
+
         });
 
-        wavesurfer.addRegion({
-            start: 10,
-            end: 100,
-            color: 'hsla(200, 50%, 70%, 0.1)'
+        /* EQ
+         */
+
+        var EQ = [{
+            f: 32,
+            type: 'lowshelf'
+        }, {
+            f: 64,
+            type: 'peaking'
+        }, {
+            f: 125,
+            type: 'peaking'
+        }, {
+            f: 250,
+            type: 'peaking'
+        }, {
+            f: 500,
+            type: 'peaking'
+        }, {
+            f: 1000,
+            type: 'peaking'
+        }, {
+            f: 2000,
+            type: 'peaking'
+        }, {
+            f: 4000,
+            type: 'peaking'
+        }, {
+            f: 8000,
+            type: 'peaking'
+        }, {
+            f: 16000,
+            type: 'highshelf'
+        }];
+
+        // Create filters
+        var filters = EQ.map(function(band) {
+            var filter = wavesurfer.backend.ac.createBiquadFilter();
+            filter.type = band.type;
+            filter.gain.value = 0;
+            filter.Q.value = 1;
+            filter.frequency.value = band.f;
+            return filter;
         });
-    });
-    // Zoom slider
-    var slider = document.querySelector('[data-action="zoom"]');
 
-    slider.value = 1000;//wavesurfer.params.minPxPerSec;
-    slider.min = wavesurfer.params.minPxPerSec;
+        // Connect filters to wavesurfer
+        wavesurfer.backend.setFilters(filters);
 
-    slider.addEventListener('input', function () {
-        //wavesurfer.zoom(Number(this.value));
-        wavesurfer.setPlaybackRate(Number(this.value)/1000);
+        // Bind filters to vertical range sliders
+        var container = document.querySelector('#granular-engine-pitch-container');
+        filters.forEach(function (filter) {
+            var input = document.createElement('input');
+            wavesurfer.util.extend(input, {
+                type: 'range',
+                min: -40,
+                max: 40,
+                value: 0,
+                title: filter.frequency.value
+            });
+            input.style.display = 'inline-block';
+            input.setAttribute('orient', 'vertical');
+            wavesurfer.drawer.style(input, {
+                'webkitAppearance': 'slider-vertical',
+                width: '50px',
+                height: '150px'
+            });
+            container.appendChild(input);
+
+            var onChange = function (e) {
+                filter.gain.value = ~~e.target.value;
+            };
+
+            input.addEventListener('input', onChange);
+            input.addEventListener('change', onChange);
+        });
+
+        // For debugging
+        wavesurfer.filters = filters;
+
     });
 
 });
 // Report errors
-wavesurfer.on('error', function (err) {
+wavesurfer.on('error', function(err) {
     console.error(err);
 });
 
 // Do something when the clip is over
-wavesurfer.on('finish', function () {
+wavesurfer.on('finish', function() {
     console.log('Finished playing');
 });
 
 
 /* Progress bar */
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function() {
     var progressDiv = document.querySelector('#progress-bar');
     var progressBar = progressDiv.querySelector('.progress-bar');
 
-    var showProgress = function (percent) {
+    var showProgress = function(percent) {
         progressDiv.style.display = 'block';
         progressBar.style.width = percent + '%';
     };
 
-    var hideProgress = function () {
+    var hideProgress = function() {
         progressDiv.style.display = 'none';
     };
 
@@ -86,8 +161,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 // Drag'n'drop
-document.addEventListener('DOMContentLoaded', function () {
-    var toggleActive = function (e, toggle) {
+document.addEventListener('DOMContentLoaded', function() {
+    var toggleActive = function(e, toggle) {
         e.stopPropagation();
         e.preventDefault();
         toggle ? e.target.classList.add('wavesurfer-dragover') :
@@ -96,7 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var handlers = {
         // Drop event
-        drop: function (e) {
+        drop: function(e) {
             toggleActive(e, false);
 
             // Load the file into wavesurfer
@@ -108,18 +183,18 @@ document.addEventListener('DOMContentLoaded', function () {
         },
 
         // Drag-over event
-        dragover: function (e) {
+        dragover: function(e) {
             toggleActive(e, true);
         },
 
         // Drag-leave event
-        dragleave: function (e) {
+        dragleave: function(e) {
             toggleActive(e, false);
         }
     };
 
     var dropTarget = document.querySelector('#drop');
-    Object.keys(handlers).forEach(function (event) {
+    Object.keys(handlers).forEach(function(event) {
         dropTarget.addEventListener(event, handlers[event]);
     });
 });

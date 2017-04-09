@@ -324,6 +324,7 @@ export const GrainDefs_Cello1 = {
 }
 
 export const GrainDefs_Cello = {
+    speed: 1.0,
     periodAbs: 0.09,
     periodRel: 0.09,
     periodVar: 0.22,
@@ -335,6 +336,28 @@ export const GrainDefs_Cello = {
     attackRel: 0.69,
     releaseAbs: 1.0,
     releaseRel: 1.0,
+    releaseShape: 'lin',
+    expRampOffset: 0.0001,
+    resampling: 0,
+    resamplingVar: 0,
+    gain: 0.29,
+    centered: true,
+    cyclic: true,
+}
+
+export const GrainDefs_Mix_Default = {
+    speed: 1.0,
+    periodAbs: 0.003,
+    periodRel: 0.0,
+    periodVar: 0.0,
+    position: 0.0,
+    positionVar: 0.005,
+    durationAbs: 0.2,
+    durationRel: 0.0,
+    attackAbs: 1.0,
+    attackRel: 0.0,
+    releaseAbs: 0.0,
+    releaseRel: 4.0,
     releaseShape: 'lin',
     expRampOffset: 0.0001,
     resampling: 0,

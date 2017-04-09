@@ -2,21 +2,48 @@
 
 // Create an instance
 //FIXME: Works, but dont now if this is correct way to do it?!
-import WaveSurfer from './webaudio_ircam.js';
-console.log(WaveSurfer.WaveSurfer);
 
-var wavesurfer = Object.create(WaveSurfer.WaveSurfer);
+//import * as WaveSurfer from 'wavesurfer'; 
+// _MD_ Don't now if this is correct way to do it?!
+import WaveSurferES6 from './webaudio_ircam.js';var WaveSurfer = WaveSurferES6.WaveSurfer;
+import {EQ_PERCUSSION as EQ} from './defs.js'
+import * as Region from 'wavesurfer-regions';
+import * as ELAN from 'wavesurfer-elan';
+import * as WaveSegment from 'wavesurfer-elan-wave-segment';
+import * as InputStream from './wavesurfer.inputstream.js';
 
+//console.log(EQ);
+
+console.log(WaveSurfer);
+
+var wavesurfer = Object.create(WaveSurfer);
 
 // Init & load audio file
 document.addEventListener('DOMContentLoaded', function() {
-    var options = {
+    /*var options = {
         container: document.querySelector('#waveform'),
         waveColor: 'violet',
         progressColor: 'purple',
         backend: 'WebAudio',
         cursorColor: 'navy'
+    };*/
+    var options = {
+        container     : '#waveform',
+        waveColor     : 'navy',
+        progressColor : 'blue',
+        loaderColor   : 'purple',
+        cursorColor   : 'navy',
+        selectionColor: '#d0e9c6',
+        backend: 'WebAudio',
+        normalize: false,
+        barWidth: 2,
+        loopSelection : false,
+        renderer: 'Canvas',
+        waveSegmentRenderer: 'Canvas',
+        waveSegmentHeight: 50,
+        height: 100,
     };
+
 
     if (location.search.match('scroll')) {
         options.minPxPerSec = 100;
@@ -27,107 +54,9 @@ document.addEventListener('DOMContentLoaded', function() {
     wavesurfer.init(options);
     // Load audio from URL
     //wavesurfer.load('assets/demo.wav');
-    wavesurfer.load('https://upload.wikimedia.org/wikipedia/commons/4/43/JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Prelude.ogg');
-
-    wavesurfer.on('ready', function() {
-        var reverbGain;
-        var audioContext = wavesurfer.backend.getAudioContext();
-        reverbjs.extend(audioContext);
-        // 2) Load the impulse response; upon load, connect it to the audio output.
-        //var reverbUrl = "http://reverbjs.org/Library/KinoullAisle.m4a";
-        var reverbUrl = "http://reverbjs.org/Library/AbernyteGrainSilo.m4a";
-        var reverbNode = audioContext.createReverbFromUrl(reverbUrl, function() {
-            reverbGain = wavesurfer.backend.ac.createGain();
-            reverbGain.gain.value = 0.05;
-
-            reverbGain.connect(audioContext.destination);
-            reverbNode.connect(reverbGain);
-            wavesurfer.backend.gainNode.connect(reverbNode);
-
-
-        });
-
-        /* EQ
-         */
-
-        var EQ = [{
-            f: 32,
-            type: 'lowshelf'
-        }, {
-            f: 64,
-            type: 'peaking'
-        }, {
-            f: 125,
-            type: 'peaking'
-        }, {
-            f: 250,
-            type: 'peaking'
-        }, {
-            f: 500,
-            type: 'peaking'
-        }, {
-            f: 1000,
-            type: 'peaking'
-        }, {
-            f: 2000,
-            type: 'peaking'
-        }, {
-            f: 4000,
-            type: 'peaking'
-        }, {
-            f: 8000,
-            type: 'peaking'
-        }, {
-            f: 16000,
-            type: 'highshelf'
-        }];
-
-        // Create filters
-        var filters = EQ.map(function(band) {
-            var filter = wavesurfer.backend.ac.createBiquadFilter();
-            filter.type = band.type;
-            filter.gain.value = 0;
-            filter.Q.value = 1;
-            filter.frequency.value = band.f;
-            return filter;
-        });
-
-        // Connect filters to wavesurfer
-        wavesurfer.backend.setFilters(filters);
-
-        // Bind filters to vertical range sliders
-        var container = document.querySelector('#granular-engine-pitch-container');
-        filters.forEach(function (filter) {
-            var input = document.createElement('input');
-            wavesurfer.util.extend(input, {
-                type: 'range',
-                min: -40,
-                max: 40,
-                value: 0,
-                title: filter.frequency.value
-            });
-            input.style.display = 'inline-block';
-            input.setAttribute('orient', 'vertical');
-            wavesurfer.drawer.style(input, {
-                'webkitAppearance': 'slider-vertical',
-                width: '35px',
-                height: '150px'
-            });
-            container.appendChild(input);
-
-            var onChange = function (e) {
-                filter.gain.value = ~~e.target.value;
-            };
-
-            input.addEventListener('input', onChange);
-            input.addEventListener('change', onChange);
-        });
-
-        // For debugging
-        wavesurfer.filters = filters;
-
-    });
-
+    //wavesurfer.load('https://upload.wikimedia.org/wikipedia/commons/4/43/JOHN_MICHEL_CELLO-J_S_BACH_CELLO_SUITE_1_in_G_Prelude.ogg');
+//    var leftVideo = document.getElementById('single-song');
+//    wavesurfer.load(leftVideo);
 });
 // Report errors
 wavesurfer.on('error', function(err) {
@@ -144,20 +73,52 @@ wavesurfer.on('finish', function() {
 document.addEventListener('DOMContentLoaded', function() {
     var progressDiv = document.querySelector('#progress-bar');
     var progressBar = progressDiv.querySelector('.progress-bar');
+    var dropMessage = document.querySelector('#dropmessage');
+    var waveForm = document.querySelector('#waveform');
+
 
     var showProgress = function(percent) {
+        waveForm.style.visibility = 'visible';
+        waveForm.style.display = 'block';
+
         progressDiv.style.display = 'block';
+        progressDiv.style.visibility = 'visible';
+
         progressBar.style.width = percent + '%';
     };
 
+    var showMessage = function(percent) {
+        waveForm.style.visibility = 'hidden';
+        waveForm.style.display = 'none';
+
+
+        dropMessage.style.display = 'block';
+        dropMessage.style.visibility = 'visible';
+
+    };
+
+
     var hideProgress = function() {
         progressDiv.style.display = 'none';
+        progressDiv.style.visibility = 'hidden';
+    };
+
+    var hideMessage = function() {
+        dropMessage.style.display = 'none';
+        dropMessage.style.visibility = 'hidden';
     };
 
     wavesurfer.on('loading', showProgress);
+    wavesurfer.on('loading', hideMessage);
     wavesurfer.on('ready', hideProgress);
+    wavesurfer.on('ready', hideMessage);
     wavesurfer.on('destroy', hideProgress);
+    wavesurfer.on('destroy', showMessage);
     wavesurfer.on('error', hideProgress);
+    wavesurfer.on('error', showMessage);
+
+    hideProgress();
+    showMessage();
 });
 
 

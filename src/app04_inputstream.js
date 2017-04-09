@@ -1,26 +1,31 @@
 import wavesurfer from './init.js';
 import {
     EQ_CELLO,
-    EQ_MIX,
     EQ_PERCUSSION,
     GrainDefs_Perc,
     GrainDefs_Cello,
-    GrainDefs_Piano96k,
-    GrainDefs_Piano96k_downsampled44k,
-    GrainDefs_Piano192k_downsampled44k,
-    GrainDefs_EXFUCKINGSTREAM,
-    GrainDefs_SuperCleanHalfSpeed,
-    GrainDefs_Allround,
-    GrainDefs_OkSlow,
     RangeValues
 } from './defs.js'
 
 import wavesBasicControllers from 'waves-basic-controllers'; //wavesBasicControllers is an alias in webpack.config.json
 
-const GRAIN_DEFAULT = GrainDefs_Allround;
-const EQ_DEFAULT = EQ_MIX;
+const GRAIN_DEFAULT = GrainDefs_Cello;
+const EQ_DEFAULT = EQ_CELLO;
 
 var selectedRegion = null;
+
+
+// Create elan instance
+var elan = Object.create(wavesurfer.ELAN);
+
+// Create Elan Wave Segment instance
+var elanWaveSegment = Object.create(wavesurfer.ELANWaveSegment);
+
+
+
+
+
+
 
 var GLOBAL_ACTIONS = {
     'play': function() {
@@ -170,7 +175,7 @@ var setupGrain = function(GrainDefs) {
     var self = wavesurfer.backend;
 
     /* Initialize granular engine and draw slider */
-    for (var k in GrainDefs){
+    for (var k in GrainDefs) {
         //console.log(RangeValues[k]);
         if (typeof RangeValues[k] !== 'undefined') {
             //console.log("Key: " + k);
@@ -181,20 +186,17 @@ var setupGrain = function(GrainDefs) {
             // setup up the granular sliders, but can't 
             // figure it out at the moment.
             var sliderFactory = function(k) {
-              return function(val) {
-                new wavesBasicControllers.Slider(k, RangeValues[k].min, RangeValues[k].max, 0.01, value, "", '', container, function(val) {
-                    if(k==='speed') {
-                    self.playControl.speed = val;
-                    } else {
-                    self.transportedGranularEngine[k] = val;
-                    }
-                });
-                
-              };
+                return function(val) {
+                    new wavesBasicControllers.Slider(k, RangeValues[k].min, RangeValues[k].max, 0.01, value, "", '', container, function(val) {
+                        self.transportedGranularEngine[k] = val;
+                        //console.log("Key is " + k + ", value is " + val);
+                    });
+
+                };
             };
 
             var makeSlider = sliderFactory(k);
-            makeSlider(value);    
+            makeSlider(value);
 
 
             //console.log("Key is " + k + ", value is" + self.transportedGranularEngine[k]);
@@ -202,6 +204,44 @@ var setupGrain = function(GrainDefs) {
     }
 
 
+    /*
+
+    self.transportedGranularEngine.speed = GrainDefs.speed;
+    self.transportedGranularEngine.positionVar = GrainDefs.posvar;
+    self.transportedGranularEngine.periodAbs = GrainDefs.period;
+    self.transportedGranularEngine.durationAbs = GrainDefs.duration;
+    self.transportedGranularEngine.resampling = GrainDefs.resamp;
+    self.transportedGranularEngine.resamplingVar = GrainDefs.resvar;
+
+
+    new wavesBasicControllers.Slider("Position Var", 0, 0.200, 0.001, GrainDefs.posvar, "sec", '', container, function(value) {
+        //self.scheduledGranularEngine.positionVar = value;
+        self.transportedGranularEngine.positionVar = value;
+    });
+
+    new wavesBasicControllers.Slider("Period", 0.001, 0.500, 0.001, GrainDefs.period, "sec", '', container, function(value) {
+        //self.scheduledGranularEngine.periodAbs = value;
+        self.transportedGranularEngine.periodAbs = value;
+    });
+
+    new wavesBasicControllers.Slider("Duration", 0.010, 0.500, 0.001, GrainDefs.duration, "sec", '', container, function(value) {
+        //self.scheduledGranularEngine.durationAbs = value;
+        self.transportedGranularEngine.durationAbs = value;
+    });
+
+    new wavesBasicControllers.Slider("Resampling", -2400, 2400, 1, GrainDefs.resamp, "cent", '', container, function(value) {
+        //self.scheduledGranularEngine.resampling = value;
+        self.transportedGranularEngine.resampling = value;
+    });
+
+    new wavesBasicControllers.Slider("Resampling Var", 0, 1200, 1, GrainDefs.resvar, "cent", '', container, function(value) {
+        //self.scheduledGranularEngine.resamplingVar = value;
+        self.transportedGranularEngine.resamplingVar = value;
+        //self.scheduledGranularEngine.positionVar = value;
+        self.transportedGranularEngine.positionVar = value;
+    });
+
+    */
 }
 
 var setupEQ = function(EQ) {
@@ -329,7 +369,7 @@ var setupReverb = function() {
     var audioContext = wavesurfer.backend.getAudioContext();
     reverbjs.extend(audioContext);
     // 2) Load the impulse response; upon load, connect it to the audio output.
-    var reverbUrl = "http://reverbjs.org/Library/KinoullAisle.m4a";
+    //var reverbUrl = "http://reverbjs.org/Library/KinoullAisle.m4a";
     var reverbUrl = "http://reverbjs.org/Library/AbernyteGrainSilo.m4a";
     var reverbNode = audioContext.createReverbFromUrl(reverbUrl, function() {
         reverbGain = wavesurfer.backend.ac.createGain();
@@ -341,37 +381,150 @@ var setupReverb = function() {
     });
 }
 
-wavesurfer.on('ready', function() {
-    //console.log(wavesurfer);
-    // Add some more GUI components for setting different options....
-    var selectedRegion = null;
+//wavesurfer.on('ready', function() {
+document.addEventListener('DOMContentLoaded', function() {
 
-    // Regions
-    if (wavesurfer.enableDragSelection) {
-        wavesurfer.enableDragSelection({
-            color: 'rgba(0, 255, 0, 0.1)'
+    /* ELAN */
+    /*elan.on('select', function(start, end) {
+        wavesurfer.backend.play(start, end);
+    });
+
+    //set up listener for when elan is done
+    elan.on('ready', function(data) {
+        //go load the wave form
+        wavesurfer.load('./transcripts/001z.mp3');
+
+        //add some styling to elan table
+        var classList = elan.container.querySelector('table').classList;
+        ['table', 'table-striped', 'table-hover'].forEach(function(cl) {
+            classList.add(cl);
         });
-    }
-    
-        // Zoom slider
+    });
+
+    //init elan
+    elan.init({
+        url: './transcripts/001z.xml',
+        container: '#annotations',
+        tiers: {
+            Text: true,
+            Comments: true
+        }
+    });*/
+
+
+        /* InputStream */
+
+        var microphone = Object.create(wavesurfer.InputStream);
+
+        microphone.init({
+            wavesurfer: wavesurfer
+        });
+
+        microphone.on('deviceReady', function(stream) {
+            console.log('InputStream ready!', stream);
+        });
+        microphone.on('deviceError', function(code) {
+            console.warn('InputStream error: ' + code);
+        });
+
+        // start the microphone
+        microphone.start();
+
+
+    wavesurfer.on('ready', function() {
+        /* Options for elan wavesegment */
+        var options = {
+            container: '#waveform',
+            waveColor: 'navy',
+            progressColor: 'blue',
+            loaderColor: 'purple',
+            cursorColor: 'navy',
+            selectionColor: '#d0e9c6',
+            backend: 'WebAudio',
+            normalize: true,
+            loopSelection: false,
+            renderer: 'Canvas',
+            waveSegmentRenderer: 'Canvas',
+            waveSegmentHeight: 50,
+            height: 100,
+            plotTimeEnd: wavesurfer.backend.getDuration(),
+            wavesurfer: wavesurfer,
+            ELAN: elan,
+            scrollParent: false
+        };
+
+
+        //elanWaveSegment.init(options);
+
+        /*
+
+        //console.log(wavesurfer);
+        // Add some more GUI components for setting different options....
+        var selectedRegion = null;
+
+        // Regions
+        if (wavesurfer.enableDragSelection) {
+            wavesurfer.enableDragSelection({
+                color: 'rgba(0, 255, 0, 0.1)'
+            });
+        }
+
+        // Tempo slider
         var slider = document.querySelector('[data-action="zoom"]');
 
-        slider.value = wavesurfer.params.minPxPerSec;
-        slider.min = 1;
-
+        slider.value = 500; //wavesurfer.params.minPxPerSec;
+        slider.min = 250;
 
         slider.addEventListener('input', function() {
-            var zoomLevel = Number(slider.value);
-             wavesurfer.zoom(zoomLevel);
+            wavesurfer.setPlaybackRate(Number(this.value * 2) / 1000); //Range from 0 - 2.
         });
 
-    //Setup some basic hooks
-    setupDropdowns();
+        //Setup some basic hooks
+        //setupDropdowns();
+        //setupGrain(GRAIN_DEFAULT);
+        //setupEQ(EQ_DEFAULT);
+        //setupReverb();
+  */
+    });
 
+/*
 
-    setupGrain(GRAIN_DEFAULT);
-    setupEQ(EQ_DEFAULT);
-    setupReverb();
+    var prevAnnotation, prevRow, region;
+    var onProgress = function(time) {
+        elanWaveSegment.onProgress(time);
+        var annotation = elan.getRenderedAnnotation(time);
+
+        if (prevAnnotation != annotation) {
+            prevAnnotation = annotation;
+
+            region && region.remove();
+            region = null;
+
+            if (annotation) {
+                // Highlight annotation table row
+                var row = elan.getAnnotationNode(annotation);
+                prevRow && prevRow.classList.remove('success');
+                prevRow = row;
+                row.classList.add('success');
+                var before = row.previousSibling;
+                if (before) {
+                    elan.container.scrollTop = before.offsetTop;
+                }
+
+                // Region
+                region = wavesurfer.addRegion({
+                    start: annotation.start,
+                    end: annotation.end,
+                    resize: false,
+                    color: 'rgba(223, 240, 216, 0.7)'
+                });
+            }
+        }
+    };
+
+    wavesurfer.on('audioprocess', onProgress);
+*/
+
 });
 
 

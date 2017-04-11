@@ -5,6 +5,26 @@ import X2JS from './lib/xml2js.min.js';
 
 // Create x2js instance with default config
 var x2js = new X2JS();
+/*
+var User = {
+    this.new_page = "";
+    this.read_file = function(fn) {
+        console.log("implement me!");
+        //return readFile(fn)
+    };
+    this.errmsg = function(msg, l, c) {
+        this.errtxt += msg + "\n"
+    };
+    this.img_out = function(str) {
+        console.log(str);
+        this.new_page += str
+    };
+    this.page_format = true
+}
+
+
+var user = new User;
+var abc = new Abc(user);*/
 
 WaveSurfer.ELAN = {
     Types: {
@@ -142,45 +162,42 @@ WaveSurfer.ELAN = {
         return data;
     },
     addAnnotation: function(start, end, text, comment) {
-        var id = this.data.length+1;
-        var aid = "EDU"+id;
-        var tid = "TEXT"+id;
-        var cid = "COMMENT"+id;
+        var id = this.data.length + 1;
+        var aid = "EDU" + id;
+        var tid = "TEXT" + id;
+        var cid = "COMMENT" + id;
 
-        var align_anno = 
-             {
-                type: "ALIGNABLE_ANNOTATION",
-                id: aid,
-                ref: null,
-                value: id,
-                start: start,
-                end: end
-            };
-        
-        var text_anno = 
-             {
-                type: "REF_ANNOTATION",
-                id: tid,
-                ref: aid,
-                reference: align_anno,
-                value: text
-            };
+        var align_anno = {
+            type: "ALIGNABLE_ANNOTATION",
+            id: aid,
+            ref: null,
+            value: id,
+            start: start,
+            end: end
+        };
 
-        var comment_anno =
-             {
-                type: "REF_ANNOTATION",
-                id: cid,
-                ref: aid,
-                reference: align_anno,
-                value: comment
-            };
+        var text_anno = {
+            type: "REF_ANNOTATION",
+            id: tid,
+            ref: aid,
+            reference: align_anno,
+            value: text
+        };
+
+        var comment_anno = {
+            type: "REF_ANNOTATION",
+            id: cid,
+            ref: aid,
+            reference: align_anno,
+            value: comment
+        };
 
 
 
         this.data.alignableAnnotations.push(align_anno);
-        this.data.annotations[aid]=align_anno;
-        this.data.annotations[tid]=text_anno;
-        this.data.annotations[cid]=comment_anno;
+        this.data.annotations[aid] = align_anno;
+        this.data.annotations[tid] = text_anno;
+        this.data.annotations[cid] = comment_anno;
         this.data.length += 1;
 
         this.data.tiers[0].annotations.push(align_anno);

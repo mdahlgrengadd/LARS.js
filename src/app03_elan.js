@@ -1,5 +1,8 @@
 import wavesurfer from './init.js';
 import {
+    selectedRegion
+} from './init.js';
+import {
     EQ_CELLO,
     EQ_PERCUSSION,
     GrainDefs_Perc,
@@ -23,6 +26,33 @@ var elan = Object.create(wavesurfer.ELAN);
 // Create Elan Wave Segment instance
 var elanWaveSegment = Object.create(wavesurfer.ELANWaveSegment);
 
+var ELAN_ACTIONS = {
+    'addselection': function() {
+        var wavesegment_options = {
+            container: '#waveform',
+            waveColor: 'navy',
+            progressColor: 'blue',
+            loaderColor: 'purple',
+            cursorColor: 'navy',
+            selectionColor: '#d0e9c6',
+            backend: 'WebAudio',
+            normalize: true,
+            loopSelection: false,
+            renderer: 'Canvas',
+            waveSegmentRenderer: 'Canvas',
+            waveSegmentHeight: 50,
+            height: 100,
+            plotTimeEnd: wavesurfer.backend.getDuration(),
+            wavesurfer: wavesurfer,
+            ELAN: elan,
+            scrollParent: false
+        };
+        console.log(selectedRegion);
+        elan.addAnnotation(selectedRegion.start, selectedRegion.end, "Example", "Test");
+        elanWaveSegment.init(wavesegment_options);
+    }
+};
+
 
 var setupGrain = function(GrainDefs) {
     var container = document.querySelector('#granular-engine-container');
@@ -31,7 +61,7 @@ var setupGrain = function(GrainDefs) {
     var self = wavesurfer.backend;
 
     /* Initialize granular engine and draw slider */
-    for (var k in GrainDefs){
+    for (var k in GrainDefs) {
         //console.log(RangeValues[k]);
         if (typeof RangeValues[k] !== 'undefined') {
             //console.log("Key: " + k);
@@ -42,20 +72,20 @@ var setupGrain = function(GrainDefs) {
             // setup up the granular sliders, but can't 
             // figure it out at the moment.
             var sliderFactory = function(k) {
-              return function(val) {
-                new wavesBasicControllers.Slider(k, RangeValues[k].min, RangeValues[k].max, 0.01, value, "", '', container, function(val) {
-                    if(k==='speed') {
-                    self.playControl.speed = val;
-                    } else {
-                    self.transportedGranularEngine[k] = val;
-                    }
-                });
-                
-              };
+                return function(val) {
+                    new wavesBasicControllers.Slider(k, RangeValues[k].min, RangeValues[k].max, 0.0001, value, "", '', container, function(val) {
+                        if (k === 'speed') {
+                            self.playControl.speed = val;
+                        } else {
+                            self.transportedGranularEngine[k] = val;
+                        }
+                    });
+
+                };
             };
 
             var makeSlider = sliderFactory(k);
-            makeSlider(value);    
+            makeSlider(value);
 
 
             //console.log("Key is " + k + ", value is" + self.transportedGranularEngine[k]);
@@ -204,15 +234,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+
+    //Setup Elan actions
+    [].forEach.call(document.querySelectorAll('[data-action]'), function(el) {
+        el.addEventListener('click', function(e) {
+            var action = e.currentTarget.dataset.action;
+            if (action in ELAN_ACTIONS) {
+                e.preventDefault();
+                ELAN_ACTIONS[action](e);
+            }
+        });
+    });
+
+
+
+
     function loadXMLDoc(dname) {
         var xhttp;
         if (window.XMLHttpRequest) {
-            xhttp=new XMLHttpRequest();
+            xhttp = new XMLHttpRequest();
+        } else {
+            xhttp = new ActiveXObject("Microsoft.XMLHTTP");
         }
-        else {
-            xhttp=new ActiveXObject("Microsoft.XMLHTTP");
-        }
-        xhttp.open("GET",dname,false);
+        xhttp.open("GET", dname, false);
         xhttp.send();
         return xhttp.responseXML;
     }
@@ -238,29 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
     elan.loadJson(jsonObj);
 
     wavesurfer.on('ready', function() {
-        var wavesegment_options = {
-            container: '#waveform',
-            waveColor: 'navy',
-            progressColor: 'blue',
-            loaderColor: 'purple',
-            cursorColor: 'navy',
-            selectionColor: '#d0e9c6',
-            backend: 'WebAudio',
-            normalize: true,
-            loopSelection: false,
-            renderer: 'Canvas',
-            waveSegmentRenderer: 'Canvas',
-            waveSegmentHeight: 50,
-            height: 100,
-            plotTimeEnd: wavesurfer.backend.getDuration(),
-            wavesurfer: wavesurfer,
-            ELAN: elan,
-            scrollParent: false
-        };
-
-        elan.addAnnotation(0,wavesurfer.getDuration(),"Example", "Test");
-
-        elanWaveSegment.init(wavesegment_options);
+        wavesurfer.clearRegions();
 
         // Regions
         if (wavesurfer.enableDragSelection) {
@@ -268,8 +290,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: 'rgba(0, 255, 0, 0.25)'
             });
         }
-
-
 
         //Setup some basic hooks
         setupDropdowns();

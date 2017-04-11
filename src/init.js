@@ -15,7 +15,6 @@ import * as ELAN from './wavesurfer-elan.json.js';
 import * as WaveSegment from 'wavesurfer-elan-wave-segment';
 import * as InputStream from './wavesurfer.inputstream.js';
 
-
 var selectedRegion = null;
 
 var wavesurfer = Object.create(WaveSurfer);
@@ -42,22 +41,21 @@ var GLOBAL_ACTIONS = {
 
     'toggle-mute': function() {
         wavesurfer.toggleMute();
-    }
+    },
 };
-
 
 // Init & load audio file
 document.addEventListener('DOMContentLoaded', function() {
     var options = {
         container: '#waveform',
-        waveColor: 'navy',
-        progressColor: 'blue',
+        waveColor: '#3498db',
+        progressColor: '#7f8c8d',
         loaderColor: 'purple',
         cursorColor: 'navy',
         selectionColor: '#d0e9c6',
         backend: 'WebAudio',
         normalize: false,
-        //barWidth: 2,
+        barWidth: 1,
         loopSelection: false,
         renderer: 'MultiCanvas',
         waveSegmentRenderer: 'Canvas',
@@ -74,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Init
     wavesurfer.init(options);
     // Load audio from URL
-    //wavesurfer.load('assets/demo.wav');
+    wavesurfer.load('assets/demo.wav');
 
 });
 
@@ -128,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     wavesurfer.on('region-dblclick', regionDblClicked);
     wavesurfer.on('region-click', regionClicked);
-    wavesurfer.on('region-update-end', regionClicked);
+    wavesurfer.on('region-update-end', regionUpdated);
 
     // Report errors
     wavesurfer.on('error', function(err) {
@@ -216,10 +214,9 @@ function zoomTo(start, end) {
 }
 
 
-
+//Remove selection
 function unselectRegion(region) {
     utilRemoveRegion(wavesurfer, region.id);
-    console.log(region);
 }
 
 //Unhighligt old selection
@@ -236,34 +233,30 @@ function unhighlightRegion(region) {
 */
 function clickOverride(region) {
     wavesurfer.drawer.on('click', function(e, progress) {
-        setTimeout(function() {
+        //setTimeout(function() {
+        var seekpos = progress * wavesurfer.getDuration();
 
-            var seekpos = progress * wavesurfer.getDuration();
+        if (selectedRegion != null) {
 
-            if (selectedRegion != null) {
-
-                //Check if clicked outside last selected region...
-                if (seekpos < selectedRegion.start || seekpos > selectedRegion.end) {
-                    unselectRegion(selectedRegion);
-                    selectedRegion = null;
-                    wavesurfer.backend.seekTo(seekpos);
-                } else { // end if seekpos...
-
-                    selectedRegion.update({
-                        color: 'rgba(255, 0, 0, 0.25)'
-                    });
-                    selectedRegion = region;
-
-
-
-                    wavesurfer.backend.seekTo(selectedRegion.start, selectedRegion.end);
-                }
-            } else { // end if selectedRegion..
+            //Check if clicked outside last selected region...
+            if (seekpos < selectedRegion.start || seekpos > selectedRegion.end) {
+                unselectRegion(selectedRegion);
+                selectedRegion = null;
                 wavesurfer.backend.seekTo(seekpos);
-            }
+            } else { // end if seekpos...
 
-            wavesurfer.drawer.progress(wavesurfer.backend.getPlayedPercents());
-        }, 0);
+                selectedRegion.update({
+                    color: 'rgba(41, 128, 185, 0.25)'
+                });
+                selectedRegion = region;
+                wavesurfer.backend.seekTo(selectedRegion.start, selectedRegion.end);
+            }
+        } else { // end if selectedRegion..
+            wavesurfer.backend.seekTo(seekpos);
+        }
+
+        wavesurfer.drawer.progress(wavesurfer.backend.getPlayedPercents());
+        //}, 0);
     });
 }
 
@@ -290,7 +283,7 @@ function regionDblClicked(region) {
     }, 0);
 }
 
-wavesurfer.on('region-update-end', function(region) {
+function regionUpdated(region) {
 
     if (selectedRegion == region) {
         return;
@@ -302,10 +295,9 @@ wavesurfer.on('region-update-end', function(region) {
 
     selectedRegion = region;
 
-    clickOverride(region);
+    regionClicked(region);
 
-});
-
+}
 
 // Bind actions to buttons and keypresses
 document.addEventListener('DOMContentLoaded', function() {
@@ -374,3 +366,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 export default wavesurfer;
+export var selectedRegion;

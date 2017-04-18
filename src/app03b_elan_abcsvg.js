@@ -16,8 +16,9 @@ import X2JS from './lib/xml2js.min.js';
 
 const GRAIN_DEFAULT = GrainDefs_Mix_Default;
 const EQ_DEFAULT = EQ_CELLO;
-
-
+const ANNO_ID = "BAR";
+const SCORE_WIDTH = 800;
+console.log("FIXME: Make it possible to change pagewidth.");
 var x2js = new X2JS();
 
 // Create elan instance
@@ -27,30 +28,21 @@ var elan = Object.create(wavesurfer.ELAN);
 var elanWaveSegment = Object.create(wavesurfer.ELANWaveSegment);
 var wavesSegmentsArray = [];
 
+var currentMeasure = undefined;
+
 var ELAN_ACTIONS = {
     'addselection': function() {
-        var svg = $('#wijzer')[0];
-        var matrix = svg.getScreenCTM()
-                .translate(+svg.getAttribute("cx"),
-                         +svg.getAttribute("cy"));
+        if (currentMeasure == undefined) return;
+        var _annoid = currentMeasure.getAttribute("id");
 
-
-
-        var waveSegmentPos = {
-            left:  (matrix.e) + "px",
-            top: (matrix.f - 15) + "px", 
-            width: svg.getAttribute('width')
-        }
-
-        wavesSegmentsArray.push(waveSegmentPos);
-        console.log(wavesSegmentsArray);
-
+        elan.updateAnnotation(_annoid, selectedRegion.start, selectedRegion.end, "FOO", "BAR");
         var wavesegment_options = {
             container: '#waveform',
-            waveColor: '#3498db',
-            progressColor: '#f1c40f',
+            waveColor: '#dddddd',
+            progressColor: '#3498db',
             loaderColor: 'purple',
             cursorColor: '#e67e22',
+            cursorWidth: 1,
             selectionColor: '#d0e9c6',
             backend: 'WebAudio',
             normalize: true,
@@ -67,23 +59,19 @@ var ELAN_ACTIONS = {
             scrollParent: false
         };
 
-        
-        console.log(selectedRegion);
-        elan.addAnnotation(selectedRegion.start, selectedRegion.end, "Example Text", "Comment Test");
+
         elanWaveSegment.init(wavesegment_options);
+
     }
 };
 
 
-function playPause2() {
 
-    console.log("DUMMMYYY");
-}
 
-    var wz_xs = [],
-        wz_ymin = [],
-        wz_ymax = [],
-        bars = [];
+var wz_xs = [],
+    wz_ymin = [],
+    wz_ymax = [],
+    bars = [];
 var opt, onYouTubeIframeAPIReady, msc_credits, media_height, times_arr, offset_js, endtime_js, abc_arr, lpRec;
 //Vim Vree - ABC Web
 var muziek, curmtr, curtmp, msc_svgs, msc_gs, msc_wz, offset, mediaFnm, abcSave, elmed, scoreFnm, timerId = -1;
@@ -93,7 +81,7 @@ var ybplayer, yubchk = 0,
     onYouTubeAPIContinue, opt_url = {},
     sok = null,
     gFac;
-var /*dummyPlayer = new DummyPlayer (), */TOFF = 0.01;
+var /*dummyPlayer = new DummyPlayer (), */ TOFF = 0.01;
 opt = {}; // global options
 function initGlobals() {
     abcSave = ''; // abc code:: [string]
@@ -107,7 +95,9 @@ function initGlobals() {
     gFac = 0.1; // absolute change for offset or duration
     noprogress = 0; // stop cursor until offset synced
 }
-
+var tixlb = [
+    [0, 0, 1]
+];
 
 function dolayout(abctxt) {
     var muziek = '',
@@ -127,9 +117,7 @@ function dolayout(abctxt) {
         mbeats = [],
         mreps = [],
         mdurs = [];
-    var tixlb = [
-        [0, 0, 1]
-    ]; // time index -> [line_num, bar_num, repcnt], line_num == 0.., bar_num == 1.., repcnt = 1..
+    // time index -> [line_num, bar_num, repcnt], line_num == 0.., bar_num == 1.., repcnt = 1..
     var lbtix = []; // line_num, bar_num, repcnt -> time index
     function errmsg(txt, line, col) {
         errtxt += txt + '\n';
@@ -185,7 +173,6 @@ function dolayout(abctxt) {
             ro = abc_lines[i].match(/%%scale\s*([\d.]+)/); // avoid %%scale 1.0, because different svg hierarchy
             if (ro && ro[1] == 1.0) abc_lines[i] = '%%scale 0.99';
         }
-        console.log(abc_lines);
         return abc_lines;
     }
 
@@ -235,64 +222,6 @@ function dolayout(abctxt) {
                     break;
             }
         }
-        console.log(mdurs);
-    }
-
-    function perc2map(abcIn) {
-        var b = '%%beginsvg\n<defs>\n'
-        b += '<text id="x" x="-3" y="0">&#xe263;</text>\n'
-        b += '<text id="normal" x="-3.7" y="0">&#xe0a4;</text>\n'
-        b += '<g id="circle-x"><text x="-3" y="0">&#xe263;</text><circle r="4" class="stroke"/></g>\n'
-        b += '<path id="triangle" d="m-4 -3.2l4 6.4 4 -6.4z" class="stroke" style="stroke-width:1.4"/>\n'
-        b += '<path id="triangle+" d="m-4 -3.2l4 6.4 4 -6.4z" class="stroke" style="fill:#000"/>\n'
-        b += '<path id="rectangle" d="m-3.5 3l0 -6.2 7.2 0 0 6.2z" class="stroke" style="stroke-width:1.4"/>\n'
-        b += '<path id="rectangle+" d="m-3.5 3l0 -6.2 7.2 0 0 6.2z" class="stroke" style="fill:#000"/>\n'
-        b += '<path id="diamond" d="m0 -3l4.2 3.2 -4.2 3.2 -4.2 -3.2z" class="stroke" style="stroke-width:1.4"/>\n'
-        b += '<path id="diamond+" d="m0 -3l4.2 3.2 -4.2 3.2 -4.2 -3.2z" class="stroke" style="fill:#000"/>\n'
-        b += '</defs>\n%%endsvg'
-        var fillmap = {
-            'diamond': 1,
-            'triangle': 1,
-            'rectangle': 1
-        };
-        var abc = [b],
-            ls, i, x, r, id = 'default',
-            maps = {
-                'default': []
-            };
-        ls = abcIn.split('\n');
-        for (i = 0; i < ls.length; ++i) {
-            x = ls[i];
-            if (x.indexOf('I:percmap') >= 0) {
-                x = x.split(' ');
-                var kop = x[4];
-                if (kop in fillmap) kop = kop + '+' + ',' + kop;
-                x = '%%map perc' + id + ' ' + x[1] + ' print=' + x[2] + ' midi=' + x[3] + ' heads=' + kop;
-                maps[id].push(x);
-            }
-            if (x.indexOf('V:') >= 0) {
-                r = x.match(/V:\s*(\S+)/);
-                if (r) {
-                    id = r[1];
-                    if (!(id in maps)) maps[id] = [];
-                }
-            }
-        }
-        for (id in maps) abc = abc.concat(maps[id]);
-        for (i = 0; i < ls.length; ++i) {
-            x = ls[i];
-            if (x.indexOf('I:percmap') >= 0) continue;
-            if (x.indexOf('V:') >= 0 || x.indexOf('K:') >= 0) {
-                r = x.match(/V:\s*(\S+)/);
-                if (r) id = r[1];
-                if (maps[id].length == 0) id = 'default';
-                abc.push(x);
-                if (x.indexOf('perc') >= 0 && x.indexOf('map=') == -1) x += ' map=perc';
-                if (x.indexOf('map=perc') >= 0 && maps[id].length > 0) abc.push('%%voicemap perc' + id);
-                if (x.indexOf('map=off') >= 0) abc.push('%%voicemap');
-            } else abc.push(x);
-        }
-        return abc.join('\n');
     }
 
     function compPlayMap() {
@@ -305,9 +234,9 @@ function dolayout(abctxt) {
             repmix = 0, // total measure index of start of repeat (count excludes repeats)
             repcnt = 1, // 2 in second traversal
             volta = 0; // 1..
-       // console.log(mtxts);
+        // console.log(mtxts);
         console.log("FIXME: Handle situaion when repeat bar is like this | : ... :| .... :|, instead of  | : ... :|: .... :|");
-        //While go into infinite loop in the case above!!!!!!
+        //While go into infinite loop in the case above!
         while (1) {
             console.log("Bars: " + bars.length + " line " + line);
             var v = mtxts[mix - 1]; // volta is on the previous measure
@@ -358,7 +287,7 @@ function dolayout(abctxt) {
     score.html(''); // clear notation area
     var abc_lines = getTune(abctxt);
     abctxt = abc_lines.join('\n');
-    if (abctxt.indexOf('percmap') >= 0) abctxt = perc2map(abctxt);
+
     var user = {
         'img_out': img_out,
         'errmsg': errmsg,
@@ -366,6 +295,7 @@ function dolayout(abctxt) {
             return '';
         }, // %%abc-include, unused
         'anno_start': svgInfo,
+        //'imagesize': 'width="'+SCORE_WIDTH+'" height="110"', 
         'get_abcmodel': timeLine
     }
     abc2svg = new Abc(user);
@@ -389,102 +319,241 @@ function dolayout(abctxt) {
         wz_ymax[i] = bs.ys[bs.ys.length - 1];
     }
     compPlayMap();
-    /*~console.log('times: ' + times);
-    ~console.log('tixbts: ' + tixbts);
-    ~console.log('mreps: ' + mreps);
-    ~console.log('mtxts: ' + mtxts);
-    ~console.log('tixlb: ' + JSON.stringify(tixlb));
-    ~console.log('lbtix: ' + JSON.stringify(lbtix));
-    ~console.log('len times: ' + times.length + ' len tixlb: ' + tixlb.length)*/
 
-    if (typeof(times_arr) != 'undefined') { // external timings take precedence.
-        times = flattenTimes(times_arr); // make 1d array of times
-    }
-    if (typeof(offset_js) != 'undefined') {
-        offset = offset_js; // external offset
-    }
+    //msc_svgs.each(function() {
+    //   $(this).mousedown(klik);
+    //}); // each music line gets the click handler
 
-    if (typeof(endtime_js) != 'undefined') { // scale times to given end time
-        var durnew = endtime_js - offset; // duration of score in seconds
-        var durold = times[times.length - 1]; // first time is always 0
-        times = times.map(function(t) {
-            return t * durnew / durold
-        });
-    }
-    abcSave = abc_lines; // keep in global for saving
-    //msc_wz = new Wijzer(wz_xs, wz_ymin, wz_ymax, times, tixlb, lbtix, tixbts);
-    //console.log(msc_wz);
-    //msc_wz.setline(1);
-    msc_svgs.each(function() {
-       $(this).mousedown(klik);
-    }); // each music line gets the click handler
-    //if (!elmed) elmed = dummyPlayer;
-    //var play_start = lpRec.loopStart + offset + TOFF;       // account for loopStart
-    //setTimeout (function () {                               // wait on DOM rendering ready (slow video!)
-    //    playPause ('false:' + play_start + ':false', 0);    // position at start, no count_in, no delay
-    //    setLoop ();
-    //}, 0);
-
+    setupSheet();
 
 }
 
-function klik (evt) {       // mousedown on svg
-    evt.preventDefault ();
+function klik(evt) { // mousedown on svg
+    evt.preventDefault();
     evt.stopPropagation();
-    var line = msc_svgs.get().indexOf (this);   // index of the clicked svg
-    var x = evt.clientX;    // position click relative to page
-    x -= $(this).position ().left;  // minus (position left edge if svg relative to page)
-    x2time (x, line);
+    var line = msc_svgs.get().indexOf(this); // index of the clicked svg
+    var x = evt.clientX; // position click relative to page
+    x -= $(this).position().left; // minus (position left edge if svg relative to page)
+    x2time(x, line);
 }
 
-function x2time (x, line) {
+
+function x2time(x, line) {
 
     function isBigEnough(element) {
-      return element >= x;
+        return element >= x;
     }
 
     // Get the sfaff measure number from an X-value;
-    var measure = bars[line].xs.findIndex(isBigEnough)-1; 
-    var measure_width = bars[line].xs[measure+1] - bars[line].xs[measure];
+    var measure = bars[line].xs.findIndex(isBigEnough) - 1;
+    var measure_width = bars[line].xs[measure + 1] - bars[line].xs[measure];
 
-    console.log ("X: "+ x +" , " + "measure: "+ measure +" width: " +measure_width);
-    //this.setx (0, 0, 0);    // hide cursor at start
-    //this.line = line;
-    //this.wijzer.prependTo (msc_gs [line]);  // insert cursor in target music line
-    var width = msc_svgs [line].width.baseVal.value;
-    var cursor = Wijzer (line, bars[line].xs[measure], measure_width);
-    $('#wijzer').remove (); // take away cursor from where it was
-    cursor.prependTo (msc_gs [line]);
+    console.log("X: " + x + " , " + "measure: " + measure + " width: " + measure_width);
+
+}
+// Returns the coordinates of a box surrounding the given measure
+// FIXME: Find better solution for y-coordinates and height!
+function getCoordforMeasure(measure) {
+    var coord = {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+    }
+
+    var positionArray = tixlb[measure];
+    var line = positionArray[0];
+    var bar = positionArray[1];
+
+    var xscale = 1; //$('svg')[0].getScreenCTM().a; // if svg is scaled, get the scale factor
+    coord.x = bars[line].xs[bar - 1] * xscale;
+    coord.width = (bars[line].xs[bar] - bars[line].xs[bar - 1]) * xscale;
+
+    // Add up heights from all previous lines above this line to get y value.  
+    for (var _l = line - 1; _l >= 0; _l--) {
+        //extract height from svg element, chop off "px" at the end.
+        coord.y += Number(msc_gs[_l][0].viewportElement.getAttribute('height').match(/\d+/)[0]);
+    }
+
+
+    coord.height = Number(msc_gs[line][0].viewportElement.getAttribute('height').match(/\d+/)[0]);
+
+    return coord;
+}
+
+//Draw a DIV box around given measure
+function selectMeasure(measure) {
+    var positionArray = tixlb[measure];
+    var line = positionArray[0];
+    var bar = positionArray[1];
+    //var measure_width = bars[line].xs[bar] - bars[line].xs[bar-1];
+    //var measure_height = bars[line].ys[bar] ;
+
+    var coord = getCoordforMeasure(measure);
+
+    var cursor = WijzerDIV(measure, line, coord.x, coord.y, coord.width, coord.height);
+    var score = $('#notation');
+    $(cursor).prependTo(score);
+    return cursor;
+
+}
+var selectedBars = [];
+var selectedDIVs = [];
+
+function clearOldSelectedDIVs() {
+
+    if (Object.prototype.toString.call(selectedDIVs) === '[object Array]') {
+        if (selectedDIVs.length < 1) return;
+        selectedDIVs.forEach(function(_div) {
+            $(_div).css('background-color', 'transparent');
+            $(_div).css('opacity', 0.35);
+            $(_div).css('border', 'none');
+        });
+    }
+
 
 }
 
-function Wijzer (line, x, width) {  // create the music cursor
+function WijzerDIV(measure, line, x, y, width, height) { // create the music cursor
+    var y_offset = -15;
 
-    var wijzer = $(document.createElementNS ('http://www.w3.org/2000/svg','svg'));
-    wijzer.attr ('id', 'wijzer');
-    wijzer.css ('overflow','visible');
-    var shade = $(document.createElementNS ('http://www.w3.org/2000/svg','rect'));
-    shade.attr ({width:'100%', height:'100%'});
-    wijzer.append (shade);
-    var tiktak = $(document.createElementNS ('http://www.w3.org/2000/svg','text'));
-    tiktak.attr ('y', 5);
-    tiktak.css ({fill:'green', stroke:'green', 'text-anchor':'end', 'font-size':'xx-large'});
-    wijzer.append (tiktak);
-    var atag =  $(document.createElementNS ('http://www.w3.org/2000/svg','text'));
-    atag.attr ('id', 'atag'); atag.text ('<');
-    atag.css ({fill:'red', stroke:'red', 'text-anchor':'middle'});
-    var btag =  $(document.createElementNS ('http://www.w3.org/2000/svg','text'));
-    btag.attr ('id', 'btag'); btag.text ('>');
-    btag.css ({fill:'red', stroke:'red', 'text-anchor':'middle'});
+    var wijzer = document.createElement('div');
+    $(wijzer).attr('id', ANNO_ID + measure);
+    $(wijzer).css('overflow', 'visible');
+    $(wijzer).css('position', 'absolute');
+    $(wijzer).css('left', (x + 10).toFixed(2) + "px");
+    $(wijzer).css('top', (y + y_offset) + "px");
+    $(wijzer).css('height', height + "px");
+    $(wijzer).css('width', width.toFixed(2) + "px");
+    //$(wijzer).css ('background-color', 'lightblue');
+    $(wijzer).css('z-index', 1);
+    $(wijzer).css('opacity', 0.35);
+    $(wijzer).css('margin-bottom', '3px');
+    //$(wijzer).css ('padding-top', '22px'); //center waveform on staff
 
-    wijzer.attr ('x', (x+10).toFixed (2));
-    wijzer.attr ('width', width.toFixed (2));
-    shade.attr ('fill-opacity', 0.2);
-    shade.attr('fill', "#3498db");
+    $(wijzer).mousedown(function(evt) {
+        console.log(evt);
+        selectedBars = [measure]; //Clear previous selection, and add this bar.
+        console.log("Start Measure: " + measure)
+    });
 
+    $(wijzer).mouseup(function(evt) {
+        //http://stackoverflow.com/questions/8069315/create-array-of-all-integers-between-two-numbers-inclusive-in-javascript-jquer
+        function range(start, end) { // Add all div's between start and end to array.
+            var arr = Array(end - start + 1).fill().map((_, idx) => {
+                var el = $("#" + ANNO_ID + (start + idx));
+                el.css('border-top', '1px dashed #000');
+                el.css('border-bottom', '1px dashed #000');
+                el.css('background-color', 'lightblue');
+                el.css('opacity', 0.35);
+                return el[0];
+            });
+            // Add left and right border to end elements
+            $(arr[0]).css('border-left', '1px dashed #000');
+            $(arr[arr.length - 1]).css('border-right', '1px dashed #000');
+            return arr;
+        }
+
+        if (currentMeasure == this) {
+            console.log("End Measure: " + measure);
+            selectedBars.push(measure);
+            //console.log(selectedBars);
+            var _highest = Math.max(...selectedBars);
+            var _lowest = Math.min(...selectedBars);
+            clearOldSelectedDIVs();
+            var result = range(_lowest, _highest);
+            //console.log(result);
+
+            
+            selectedDIVs = result;
+            var _start = elan.data.annotations[ANNO_ID + _lowest].start;
+            var _end = elan.data.annotations[ANNO_ID + _highest].end;
+            wavesurfer.backend.play(_start, _end);
+
+        }
+    });
+
+
+    $(wijzer).mouseover(function(evt) {
+
+        var annot = elan.data.annotations[ANNO_ID + measure];
+
+        //wavesurfer.backend.play(annot.start, annot.end);
+        //console.log(evt);
+        //console.log(this);
+        if (currentMeasure == this) return;
+        console.log(measure + ":" + selectedBars[0]);
+
+        if (currentMeasure != null) {
+            //console.log(currentMeasure);
+            //console.log(document.getElementById(ANNO_ID + selectedBars[0]));
+            var _sel = document.getElementById(ANNO_ID + selectedBars[0]); // selectedBars[0] = first bar of an ongoing selection
+            console.log("Current mesasure in selectedDIVs: " + selectedDIVs.includes(currentMeasure));
+            if (currentMeasure != _sel && !selectedDIVs.includes(currentMeasure)) { //dont deselect first bar of a selection while selecting
+                $(currentMeasure).css('background-color', 'transparent');
+                $(currentMeasure).css('opacity', 0.35);
+                $(currentMeasure).css('border', 'none');
+            } else {$(currentMeasure).css('background-color', 'lightblue');}
+        }
+
+        $(this).css('opacity', 0.35);
+        $(this).css('background-color', 'lightgreen');
+        $(wijzer).css('border', '1px dashed #000');
+        currentMeasure = this;
+    });
     return wijzer;
 
-}   
+}
+
+//Loop through song and setup ELAN segment for each bar
+function setupSheet() {
+    var wavesegment_options = {
+        container: '#waveform',
+        waveColor: '#dddddd',
+        progressColor: '#3498db',
+        loaderColor: 'purple',
+        cursorColor: '#e67e22',
+        cursorWidth: 1,
+        selectionColor: '#d0e9c6',
+        backend: 'WebAudio',
+        normalize: true,
+        loopSelection: false,
+        renderer: 'Canvas',
+        waveSegmentRenderer: 'Canvas',
+        waveSegmentHeight: 50,
+        height: 100,
+        barWidth: 2,
+        plotTimeEnd: wavesurfer.backend.getDuration(),
+        wavesurfer: wavesurfer,
+        ELAN: elan,
+        wavesSegmentsArray,
+        scrollParent: false
+    };
+
+    var measure_duration = wavesurfer.getDuration() / (tixlb.length - 1);
+
+    for (var i = 1; i < tixlb.length; i++) {
+        var msr = selectMeasure(i);
+        var rect = msr.getBoundingClientRect();
+
+        var waveSegmentPos = {
+            left: rect.left + "px",
+            top: rect.top + "px",
+            width: rect.width,
+            container: msr.getAttribute('id')
+        }
+
+
+        wavesSegmentsArray.push(waveSegmentPos);
+
+        var repris = tixlb[i][2];
+        elan.addAnnotation(ANNO_ID + i, (i - 1) * measure_duration, i * measure_duration, " Measure nr " + i, " Repetition " + repris);
+
+
+    }
+    elanWaveSegment.init(wavesegment_options);
+
+}
 
 var setupGrain = function(GrainDefs) {
     var container = document.querySelector('#granular-engine-container');
@@ -727,7 +796,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setupDropdowns();
         setupGrain(GRAIN_DEFAULT);
         setupEQ(EQ_DEFAULT);
-        setupReverb();
+        //setupReverb();
 
         //LOAD ABC TUNE
 

@@ -161,9 +161,9 @@ WaveSurfer.ELAN = {
 
         return data;
     },
-    addAnnotation: function(start, end, text, comment) {
+    addAnnotation: function(aid, start, end, text, comment) {
         var id = this.data.length + 1;
-        var aid = "EDU" + id;
+        //var aid = "EDU" + id;
         var tid = "TEXT" + id;
         var cid = "COMMENT" + id;
 
@@ -205,7 +205,16 @@ WaveSurfer.ELAN = {
         this.data.tiers[2].annotations.push(comment_anno);
         this.render();
     },
+    updateAnnotation: function(aid, start, end, text, comment) {
+         var align_anno = this.data.annotations[aid];
+         if(align_anno == undefined) return;
 
+         align_anno.start = start;
+         align_anno.end = end;
+         console.log("updated");
+         this.render();
+
+    },
     render: function() {
         // apply tiers filter
         var tiers = this.data.tiers;

@@ -294,7 +294,6 @@ function regionUpdated(region) {
     }
 
     selectedRegion = region;
-
     regionClicked(region);
 
 }

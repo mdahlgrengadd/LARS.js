@@ -101,7 +101,7 @@ WaveSurfer.ELANWaveSegment = {
         th.setAttribute('style', 'width: ' + this.params.waveSegmentWidth + 'px');
 
         //insert wave form column as the second column
-        tableRows[0].insertBefore(th, tableRows[0].firstChild.nextSibling);
+        //tableRows[0].insertBefore(th, tableRows[0].firstChild.nextSibling);
 
         //loop through each row and add the table cell for the wave form
         for(var i = 0; i < this.ELAN.renderedAlignable.length; i++) {
@@ -117,7 +117,7 @@ WaveSurfer.ELANWaveSegment = {
             //create the wave segment
             this.appendWaveSegmentToElement(td, i);
 
-            annotationRow.insertBefore(td, annotationRow.firstChild.nextSibling);
+            //annotationRow.insertBefore(td, annotationRow.firstChild.nextSibling);
         }
     },
 
@@ -168,7 +168,7 @@ WaveSurfer.ELANWaveSegment = {
         container.style.top = this.wavesSegmentsArray[elanIndex].top;
         container.className = 'elan-wavesegment-container';
 
-        el.appendChild(container);
+        //el.appendChild(container);
 
         var peaks = this.getPeaksForTimeSegment(line.start, line.end);
 
@@ -182,9 +182,14 @@ WaveSurfer.ELANWaveSegment = {
         drawerParams.fillParent = true;
         drawerParams.scrollParent = false;
 
+        var barelement = document.getElementById(this.wavesSegmentsArray[elanIndex].container);
+        //console.log("barelement");
+        //console.log(barelement);
+        barelement.innerHTML = "";
+
         //create the wave segmenet drawer and initialize in the container
         this.waveSegments[elanIndex] = Object.create(WaveSurfer.Drawer[this.params.waveSegmentRenderer]);
-        this.waveSegments[elanIndex].init(container, drawerParams);
+        this.waveSegments[elanIndex].init(barelement, drawerParams);
         this.waveSegments[elanIndex].drawPeaks(peaks, width * this.params.pixelRatio, 0, this.params.waveSegmentPeaksPerSegment);
 
         this.waveSegments[elanIndex].updateProgress(0);

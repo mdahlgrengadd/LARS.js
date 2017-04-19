@@ -11,6 +11,7 @@ import {
     EQ_PERCUSSION as EQ
 } from './defs.js'
 import * as Region from 'wavesurfer-regions';
+import * as TimeLine from 'wavesurfer-timeline'
 import * as ELAN from './wavesurfer-elan.json.js';
 import * as WaveSegment from 'wavesurfer-elan-wave-segment';
 import * as InputStream from './wavesurfer.inputstream.js';
@@ -60,6 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
         renderer: 'MultiCanvas',
         waveSegmentRenderer: 'Canvas',
         waveSegmentHeight: 50,
+        autoCenter: false,
         height: 100,
     };
 
@@ -115,23 +117,39 @@ document.addEventListener('DOMContentLoaded', function() {
         dropMessage.style.visibility = 'hidden';
     };
 
-    wavesurfer.on('loading', showProgress);
-    wavesurfer.on('loading', hideMessage);
-    wavesurfer.on('ready', hideProgress);
-    wavesurfer.on('ready', hideMessage);
-    wavesurfer.on('destroy', hideProgress);
-    wavesurfer.on('destroy', showMessage);
-    wavesurfer.on('error', hideProgress);
-    wavesurfer.on('error', showMessage);
+    // What to show when: 
+    // 1) no waveform is loaded
+    // 2) when loading and 
+    // 3) when waveform is loaded
+    wavesurfer.on('loading', function() {
+        showProgress();
+        hideMessage();
+    });
+    wavesurfer.on('ready', function() {
+        hideProgress();
+        hideMessage();
+        var timeline = Object.create(WaveSurfer.Timeline);
 
+        timeline.init({
+            wavesurfer: wavesurfer,
+            container: "#wave-timeline"
+        });
+    });
+
+    wavesurfer.on('destroy', function() {
+        hideProgress();
+        showMessage();
+    });
+    wavesurfer.on('error', function() {
+        hideProgress();
+        showMessage();
+        console.error(err);
+    });
+
+    // Setup click handling on the waveform
     wavesurfer.on('region-dblclick', regionDblClicked);
     wavesurfer.on('region-click', regionClicked);
     wavesurfer.on('region-update-end', regionUpdated);
-
-    // Report errors
-    wavesurfer.on('error', function(err) {
-        console.error(err);
-    });
 
     // Do something when the clip is over
     wavesurfer.on('finish', function() {

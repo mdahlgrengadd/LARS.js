@@ -1,8 +1,8 @@
 import wavesurfer from './init.js';
 import {
-    selectedRegion
+    selectedRegion // Global defining the current selection in the waveform.
 } from './init.js';
-import {
+import { // Settings for granular synthesis and EQ.
     EQ_CELLO,
     EQ_PERCUSSION,
     GrainDefs_Perc,
@@ -12,13 +12,17 @@ import {
 } from './defs.js'
 
 import wavesBasicControllers from 'waves-basic-controllers'; //wavesBasicControllers is an alias in webpack.config.json
-import X2JS from './lib/xml2js.min.js';
+
+import X2JS from './lib/xml2js.min.js'; // Soon to be used for XML -> JSON conversion (ELAN is XML).
 
 const GRAIN_DEFAULT = GrainDefs_Mix_Default;
 const EQ_DEFAULT = EQ_CELLO;
-const ANNO_ID = "BAR";
-const SCORE_WIDTH = 800;
-console.log("FIXME: Make it possible to change pagewidth.");
+
+const ANNO_ID = "BAR"; // prefix used for the ELAN annotations. Each measure will be an annotaion, ie BAR1, BAR2 ... BAR32...
+
+const SCORE_WIDTH = 800; // Width of the score sheet. Doesn't work at the moment, so not used. (Should be used by ABC2SVG in dolayout()).
+console.log("FIXME: Make it possible to change pagewidth of score.");
+
 var x2js = new X2JS();
 
 // Create elan instance
@@ -28,39 +32,24 @@ var elan = Object.create(wavesurfer.ELAN);
 var elanWaveSegment = Object.create(wavesurfer.ELANWaveSegment);
 var wavesSegmentsArray = [];
 
-var currentMeasure = undefined;
+var selectedBars = []; // Numerical tuplet (ie [3, 5]) containing the first and last bar/measure when doing a selection in the score.
+var selectedDIVs = []; // Array containing all DIV elements in the current score selection (ie [div#3 object, div#4 object, div#5 object] ).
+var currentMeasure = undefined; // Used for hovering effect on score.
 
 var ELAN_ACTIONS = {
-    'addselection': function() {
-        if (currentMeasure == undefined) return;
-        var _annoid = currentMeasure.getAttribute("id");
+    'addselection': function() { // This will spread the selected audio from the waveform over the selected bars in the score.
+        //if (currentMeasure == undefined) return;
 
-        elan.updateAnnotation(_annoid, selectedRegion.start, selectedRegion.end, "FOO", "BAR");
-        var wavesegment_options = {
-            container: '#waveform',
-            waveColor: '#dddddd',
-            progressColor: '#3498db',
-            loaderColor: 'purple',
-            cursorColor: '#e67e22',
-            cursorWidth: 1,
-            selectionColor: '#d0e9c6',
-            backend: 'WebAudio',
-            normalize: true,
-            loopSelection: false,
-            renderer: 'Canvas',
-            waveSegmentRenderer: 'Canvas',
-            waveSegmentHeight: 50,
-            height: 100,
-            barWidth: 2,
-            plotTimeEnd: wavesurfer.backend.getDuration(),
-            wavesurfer: wavesurfer,
-            ELAN: elan,
-            wavesSegmentsArray,
-            scrollParent: false
-        };
+        if (Object.prototype.toString.call(selectedDIVs) === '[object Array]') {
+            if (selectedDIVs.length < 1) return;
+            var _highest = Math.max(...selectedBars);
+            var _lowest = Math.min(...selectedBars);
 
-
-        elanWaveSegment.init(wavesegment_options);
+            deleteOldSelectedDIVs();    
+            console.log(selectedRegion);
+            Waveform2Score(selectedRegion.start, selectedRegion.end, _lowest, _highest + 1);
+            selectedDIVs = getDIVrange(_lowest, _highest);
+        }
 
     }
 };
@@ -324,8 +313,8 @@ function dolayout(abctxt) {
     //   $(this).mousedown(klik);
     //}); // each music line gets the click handler
 
-    setupSheet();
-
+    //setupSheet();
+    Waveform2Score(0, wavesurfer.getDuration(), 1, tixlb.length);
 }
 
 function klik(evt) { // mousedown on svg
@@ -382,7 +371,7 @@ function getCoordforMeasure(measure) {
 }
 
 //Draw a DIV box around given measure
-function selectMeasure(measure) {
+function createMeasureDIV(measure) {
     var positionArray = tixlb[measure];
     var line = positionArray[0];
     var bar = positionArray[1];
@@ -393,15 +382,14 @@ function selectMeasure(measure) {
 
     var cursor = WijzerDIV(measure, line, coord.x, coord.y, coord.width, coord.height);
     var score = $('#notation');
+    $("#" + ANNO_ID + measure).remove(); // remove old
     $(cursor).prependTo(score);
     return cursor;
 
 }
-var selectedBars = [];
-var selectedDIVs = [];
 
+// Remove highlight styling from the DIVs in the global 'selectedDIVs' array.
 function clearOldSelectedDIVs() {
-
     if (Object.prototype.toString.call(selectedDIVs) === '[object Array]') {
         if (selectedDIVs.length < 1) return;
         selectedDIVs.forEach(function(_div) {
@@ -413,6 +401,53 @@ function clearOldSelectedDIVs() {
 
 
 }
+// Delete DIVs in the global 'selectedDIVs' array. For instance when 
+// the user edits what section of the waveform should corresponds to selected measures in the score sheet.
+// Then we delete the old DIVs and create new ones ( in Waveform2Score() ).
+function deleteOldSelectedDIVs() {
+    if (Object.prototype.toString.call(selectedDIVs) === '[object Array]') {
+        if (selectedDIVs.length < 1) return;
+        selectedDIVs.forEach(function(_div) {
+            $(_div).remove();
+        });
+    }
+
+
+}
+// Looks in the global 'selectedDIVs' array and applies some styling to add highlight
+// FIXME: Use a class instead to pick styling from css file. 
+function highlightSelectedDIVs() {
+    if (Object.prototype.toString.call(selectedDIVs) === '[object Array]') {
+        if (selectedDIVs.length < 1) return;
+        selectedDIVs.forEach(function(_div) {
+            var el = $(_div);
+            el.css('border-top', '1px dashed #000');
+            el.css('border-bottom', '1px dashed #000');
+            el.css('background-color', 'lightblue');
+            el.css('opacity', 0.35);
+        });
+        // Add left/right border to first and last DIV
+        $(selectedDIVs[0]).css('border-left', '1px dashed #000');
+        $(selectedDIVs[selectedDIVs.length - 1]).css('border-right', '1px dashed #000');
+    }
+}
+// Create measure overlay DIV's for measures between 'start' and 'end'. Return an array. 
+//http://stackoverflow.com/questions/8069315/create-array-of-all-integers-between-two-numbers-inclusive-in-javascript-jquer
+function getDIVrange(start, end) { 
+    var arr = Array(end - start + 1).fill().map((_, idx) => {
+        var el = $("#" + ANNO_ID + (start + idx));
+        el.css('border-top', '1px dashed #000');
+        el.css('border-bottom', '1px dashed #000');
+        el.css('background-color', 'lightblue');
+        el.css('opacity', 0.35);
+        return el[0];
+    });
+    // Add left and right border to end elements
+    $(arr[0]).css('border-left', '1px dashed #000');
+    $(arr[arr.length - 1]).css('border-right', '1px dashed #000');
+    return arr;
+}
+
 
 function WijzerDIV(measure, line, x, y, width, height) { // create the music cursor
     var y_offset = -15;
@@ -438,22 +473,6 @@ function WijzerDIV(measure, line, x, y, width, height) { // create the music cur
     });
 
     $(wijzer).mouseup(function(evt) {
-        //http://stackoverflow.com/questions/8069315/create-array-of-all-integers-between-two-numbers-inclusive-in-javascript-jquer
-        function range(start, end) { // Add all div's between start and end to array.
-            var arr = Array(end - start + 1).fill().map((_, idx) => {
-                var el = $("#" + ANNO_ID + (start + idx));
-                el.css('border-top', '1px dashed #000');
-                el.css('border-bottom', '1px dashed #000');
-                el.css('background-color', 'lightblue');
-                el.css('opacity', 0.35);
-                return el[0];
-            });
-            // Add left and right border to end elements
-            $(arr[0]).css('border-left', '1px dashed #000');
-            $(arr[arr.length - 1]).css('border-right', '1px dashed #000');
-            return arr;
-        }
-
         if (currentMeasure == this) {
             console.log("End Measure: " + measure);
             selectedBars.push(measure);
@@ -461,14 +480,11 @@ function WijzerDIV(measure, line, x, y, width, height) { // create the music cur
             var _highest = Math.max(...selectedBars);
             var _lowest = Math.min(...selectedBars);
             clearOldSelectedDIVs();
-            var result = range(_lowest, _highest);
-            //console.log(result);
+            selectedDIVs = getDIVrange(_lowest, _highest);
 
-            
-            selectedDIVs = result;
             var _start = elan.data.annotations[ANNO_ID + _lowest].start;
             var _end = elan.data.annotations[ANNO_ID + _highest].end;
-            wavesurfer.backend.play(_start, _end);
+            //wavesurfer.backend.play(_start, _end);
 
         }
     });
@@ -482,18 +498,20 @@ function WijzerDIV(measure, line, x, y, width, height) { // create the music cur
         //console.log(evt);
         //console.log(this);
         if (currentMeasure == this) return;
-        console.log(measure + ":" + selectedBars[0]);
+        //console.log(measure + ":" + selectedBars[0]);
 
         if (currentMeasure != null) {
             //console.log(currentMeasure);
             //console.log(document.getElementById(ANNO_ID + selectedBars[0]));
             var _sel = document.getElementById(ANNO_ID + selectedBars[0]); // selectedBars[0] = first bar of an ongoing selection
-            console.log("Current mesasure in selectedDIVs: " + selectedDIVs.includes(currentMeasure));
+            //console.log("Current mesasure in selectedDIVs: " + selectedDIVs.includes(currentMeasure));
             if (currentMeasure != _sel && !selectedDIVs.includes(currentMeasure)) { //dont deselect first bar of a selection while selecting
                 $(currentMeasure).css('background-color', 'transparent');
                 $(currentMeasure).css('opacity', 0.35);
                 $(currentMeasure).css('border', 'none');
-            } else {$(currentMeasure).css('background-color', 'lightblue');}
+            } else {
+                $(currentMeasure).css('background-color', 'lightblue');
+            }
         }
 
         $(this).css('opacity', 0.35);
@@ -505,8 +523,12 @@ function WijzerDIV(measure, line, x, y, width, height) { // create the music cur
 
 }
 
-//Loop through song and setup ELAN segment for each bar
-function setupSheet() {
+// Link sheet measures with time segments in the waveform.
+// This also creates DIV overlays on the score sheet for click interaction and
+// acts as placeholders for the smaller wave segments. 
+function Waveform2Score(wave_start, wave_end, measure_start, measure_end) {
+    //wavesSegmentsArray = []; // clear array
+
     var wavesegment_options = {
         container: '#waveform',
         waveColor: '#dddddd',
@@ -530,10 +552,10 @@ function setupSheet() {
         scrollParent: false
     };
 
-    var measure_duration = wavesurfer.getDuration() / (tixlb.length - 1);
+    var measure_duration = (wave_end - wave_start) / (measure_end - measure_start);
 
-    for (var i = 1; i < tixlb.length; i++) {
-        var msr = selectMeasure(i);
+    for (var i = measure_start; i < measure_end; i++) {
+        var msr = createMeasureDIV(i);
         var rect = msr.getBoundingClientRect();
 
         var waveSegmentPos = {
@@ -547,11 +569,12 @@ function setupSheet() {
         wavesSegmentsArray.push(waveSegmentPos);
 
         var repris = tixlb[i][2];
-        elan.addAnnotation(ANNO_ID + i, (i - 1) * measure_duration, i * measure_duration, " Measure nr " + i, " Repetition " + repris);
+        elan.addAnnotation(ANNO_ID + i, wave_start + (i - measure_start) * measure_duration, wave_start + (i - measure_start + 1) * measure_duration, " Measure nr " + i, " Repetition " + repris);
 
 
     }
     elanWaveSegment.init(wavesegment_options);
+    highlightSelectedDIVs();
 
 }
 

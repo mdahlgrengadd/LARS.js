@@ -162,57 +162,61 @@ WaveSurfer.ELAN = {
         return data;
     },
     addAnnotation: function(aid, start, end, text, comment) {
-        var id = this.data.length + 1;
-        //var aid = "EDU" + id;
-        var tid = "TEXT" + id;
-        var cid = "COMMENT" + id;
+        var align_anno = this.data.annotations[aid];
+        if (align_anno == undefined) { //Create new annotation
+            var id = this.data.length + 1;
+            //var aid = "EDU" + id;
+            var tid = "TEXT" + id;
+            var cid = "COMMENT" + id;
 
-        var align_anno = {
-            type: "ALIGNABLE_ANNOTATION",
-            id: aid,
-            ref: null,
-            value: id,
-            start: start,
-            end: end
-        };
+            var align_anno = {
+                type: "ALIGNABLE_ANNOTATION",
+                id: aid,
+                ref: null,
+                value: id,
+                start: start,
+                end: end
+            };
 
-        var text_anno = {
-            type: "REF_ANNOTATION",
-            id: tid,
-            ref: aid,
-            reference: align_anno,
-            value: text
-        };
+            var text_anno = {
+                type: "REF_ANNOTATION",
+                id: tid,
+                ref: aid,
+                reference: align_anno,
+                value: text
+            };
 
-        var comment_anno = {
-            type: "REF_ANNOTATION",
-            id: cid,
-            ref: aid,
-            reference: align_anno,
-            value: comment
-        };
+            var comment_anno = {
+                type: "REF_ANNOTATION",
+                id: cid,
+                ref: aid,
+                reference: align_anno,
+                value: comment
+            };
 
 
 
-        this.data.alignableAnnotations.push(align_anno);
-        this.data.annotations[aid] = align_anno;
-        this.data.annotations[tid] = text_anno;
-        this.data.annotations[cid] = comment_anno;
-        this.data.length += 1;
+            this.data.alignableAnnotations.push(align_anno);
+            this.data.annotations[aid] = align_anno;
+            this.data.annotations[tid] = text_anno;
+            this.data.annotations[cid] = comment_anno;
+            this.data.length += 1;
 
-        this.data.tiers[0].annotations.push(align_anno);
-        this.data.tiers[1].annotations.push(text_anno);
-        this.data.tiers[2].annotations.push(comment_anno);
-        this.render();
+            this.data.tiers[0].annotations.push(align_anno);
+            this.data.tiers[1].annotations.push(text_anno);
+            this.data.tiers[2].annotations.push(comment_anno);
+            this.render();
+        } else this.updateAnnotation(aid, start, end, text, comment);
+        
     },
     updateAnnotation: function(aid, start, end, text, comment) {
-         var align_anno = this.data.annotations[aid];
-         if(align_anno == undefined) return;
+        var align_anno = this.data.annotations[aid];
+        if (align_anno == undefined) return;
 
-         align_anno.start = start;
-         align_anno.end = end;
-         console.log("updated");
-         this.render();
+        align_anno.start = start;
+        align_anno.end = end;
+        console.log("updated");
+        this.render();
 
     },
     render: function() {

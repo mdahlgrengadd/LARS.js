@@ -17,6 +17,7 @@ import * as WaveSegment from 'wavesurfer-elan-wave-segment';
 import * as InputStream from './wavesurfer.inputstream.js';
 
 var selectedRegion = null;
+var _regionFlag = false; // Seems to be needed to be able to decide if a region was clicked, or not.
 
 var wavesurfer = Object.create(WaveSurfer);
 
@@ -75,6 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
     wavesurfer.init(options);
     // Load audio from URL
     wavesurfer.load('assets/demo.wav');
+    //wavesurfer.load('https://api.soundcloud.com/tracks/74193766/stream?client_id=0b4984c1ad516406425dab7232f983f3');
 
 });
 
@@ -134,6 +136,8 @@ document.addEventListener('DOMContentLoaded', function() {
             wavesurfer: wavesurfer,
             container: "#wave-timeline"
         });
+        wavesurfer.drawer.un('click');
+        wavesurfer.drawer.on('click', clickOverride);
     });
 
     wavesurfer.on('destroy', function() {
@@ -150,6 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
     wavesurfer.on('region-dblclick', regionDblClicked);
     wavesurfer.on('region-click', regionClicked);
     wavesurfer.on('region-update-end', regionUpdated);
+    wavesurfer.drawer.on('click', clickOverride);// Override Wavesurfer.Drawer's click handler.
 
     // Do something when the clip is over
     wavesurfer.on('finish', function() {
@@ -244,51 +249,35 @@ function unhighlightRegion(region) {
     });
 }
 
-/* _MD_
-// Override Wavesurfer click so when click on region, that region gets selected.
-// Note that the SeekTo function in my overridden backend sets up looping.
-// wavesurfer.backend.seekTo(selectedRegion.start, selectedRegion.end);
-*/
-function clickOverride(region) {
-    wavesurfer.drawer.on('click', function(e, progress) {
-        //setTimeout(function() {
-        var seekpos = progress * wavesurfer.getDuration();
+// Override Wavesurfer.Drawer's click handler.
+// Because if you select/update a region, the click event will 
+// still be triggered after, and the default is to seek to "click" position.
+// That will also deselect a selection, which in this applicaton case is unwanted.
+function clickOverride(event, progress) {
 
+    if (_regionFlag) {
+        // A region was clicked
+        wavesurfer.backend.seekTo(selectedRegion.start, selectedRegion.end);
+
+    } else {
+        // Click happened "outside" a region
+        // Unselect old selected region
         if (selectedRegion != null) {
-
-            //Check if clicked outside last selected region...
-            if (seekpos < selectedRegion.start || seekpos > selectedRegion.end) {
-                unselectRegion(selectedRegion);
-                selectedRegion = null;
-                wavesurfer.backend.seekTo(seekpos);
-            } else { // end if seekpos...
-
-                selectedRegion.update({
-                    color: 'rgba(41, 128, 185, 0.25)'
-                });
-                selectedRegion = region;
-                wavesurfer.backend.seekTo(selectedRegion.start, selectedRegion.end);
-            }
-        } else { // end if selectedRegion..
-            wavesurfer.backend.seekTo(seekpos);
+            unselectRegion(selectedRegion);
+            selectedRegion = null;
         }
-
+        wavesurfer.backend.seekTo(progress * wavesurfer.getDuration());
         wavesurfer.drawer.progress(wavesurfer.backend.getPlayedPercents());
-        //}, 0);
-    });
+    }
+    _regionFlag = false;
 }
 
 function regionClicked(region) {
-    wavesurfer.drawer.un('click');
-
+    _regionFlag = true;
     selectedRegion = region;
-
-    clickOverride(region);
 }
 
 function regionDblClicked(region) {
-    wavesurfer.drawer.un('click');
-
     wavesurfer.drawer.on('click', function(e, progress) {
         setTimeout(function() {
             wavesurfer.seekTo(); //this will stop audio from looping
@@ -307,11 +296,11 @@ function regionUpdated(region) {
         return;
     }
 
+    // Unselect old selected region
     if (selectedRegion != null) {
         unselectRegion(selectedRegion);
     }
 
-    selectedRegion = region;
     regionClicked(region);
 
 }

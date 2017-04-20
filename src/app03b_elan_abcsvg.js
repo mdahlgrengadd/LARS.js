@@ -45,7 +45,7 @@ var ELAN_ACTIONS = {
             var _highest = Math.max(...selectedBars);
             var _lowest = Math.min(...selectedBars);
 
-            deleteOldSelectedDIVs();    
+            deleteOldSelectedDIVs();
             console.log(selectedRegion);
             Waveform2Score(selectedRegion.start, selectedRegion.end, _lowest, _highest + 1);
             selectedDIVs = getDIVrange(_lowest, _highest);
@@ -88,6 +88,7 @@ var tixlb = [
     [0, 0, 1]
 ];
 
+// From AbcWeb by Wim Vree
 function dolayout(abctxt) {
     var muziek = '',
         errtxt = '',
@@ -317,7 +318,23 @@ function dolayout(abctxt) {
     Waveform2Score(0, wavesurfer.getDuration(), 1, tixlb.length);
 }
 
+// Gets the measure from a click event on the SVG.
+// Not used right now because handled with DIV overlays instead.
 function klik(evt) { // mousedown on svg
+    function x2time(x, line) {
+
+        function isBigEnough(element) {
+            return element >= x;
+        }
+
+        // Get the sfaff measure number from an X-value;
+        var measure = bars[line].xs.findIndex(isBigEnough) - 1;
+        var measure_width = bars[line].xs[measure + 1] - bars[line].xs[measure];
+
+        console.log("X: " + x + " , " + "measure: " + measure + " width: " + measure_width);
+
+    }
+
     evt.preventDefault();
     evt.stopPropagation();
     var line = msc_svgs.get().indexOf(this); // index of the clicked svg
@@ -326,20 +343,6 @@ function klik(evt) { // mousedown on svg
     x2time(x, line);
 }
 
-
-function x2time(x, line) {
-
-    function isBigEnough(element) {
-        return element >= x;
-    }
-
-    // Get the sfaff measure number from an X-value;
-    var measure = bars[line].xs.findIndex(isBigEnough) - 1;
-    var measure_width = bars[line].xs[measure + 1] - bars[line].xs[measure];
-
-    console.log("X: " + x + " , " + "measure: " + measure + " width: " + measure_width);
-
-}
 // Returns the coordinates of a box surrounding the given measure
 // FIXME: Find better solution for y-coordinates and height!
 function getCoordforMeasure(measure) {
@@ -433,7 +436,7 @@ function highlightSelectedDIVs() {
 }
 // Create measure overlay DIV's for measures between 'start' and 'end'. Return an array. 
 //http://stackoverflow.com/questions/8069315/create-array-of-all-integers-between-two-numbers-inclusive-in-javascript-jquer
-function getDIVrange(start, end) { 
+function getDIVrange(start, end) {
     var arr = Array(end - start + 1).fill().map((_, idx) => {
         var el = $("#" + ANNO_ID + (start + idx));
         el.css('border-top', '1px dashed #000');
@@ -467,14 +470,14 @@ function WijzerDIV(measure, line, x, y, width, height) { // create the music cur
     //$(wijzer).css ('padding-top', '22px'); //center waveform on staff
 
     $(wijzer).mousedown(function(evt) {
-        console.log(evt);
+        //console.log(evt);
         selectedBars = [measure]; //Clear previous selection, and add this bar.
-        console.log("Start Measure: " + measure)
+        //console.log("Start Measure: " + measure)
     });
 
     $(wijzer).mouseup(function(evt) {
         if (currentMeasure == this) {
-            console.log("End Measure: " + measure);
+            //console.log("End Measure: " + measure);
             selectedBars.push(measure);
             //console.log(selectedBars);
             var _highest = Math.max(...selectedBars);
@@ -484,7 +487,8 @@ function WijzerDIV(measure, line, x, y, width, height) { // create the music cur
 
             var _start = elan.data.annotations[ANNO_ID + _lowest].start;
             var _end = elan.data.annotations[ANNO_ID + _highest].end;
-            //wavesurfer.backend.play(_start, _end);
+            if (wavesurfer.isPlaying())
+                wavesurfer.backend.play(_start, _end);
 
         }
     });
@@ -524,7 +528,7 @@ function WijzerDIV(measure, line, x, y, width, height) { // create the music cur
 }
 
 // Link sheet measures with time segments in the waveform.
-// This also creates DIV overlays on the score sheet for click interaction and
+// This creates DIV overlays on the score sheet for click interaction and
 // acts as placeholders for the smaller wave segments. 
 function Waveform2Score(wave_start, wave_end, measure_start, measure_end) {
     //wavesSegmentsArray = []; // clear array
@@ -597,7 +601,7 @@ var setupGrain = function(GrainDefs) {
             // figure it out at the moment.
             var sliderFactory = function(k) {
                 return function(val) {
-                    new wavesBasicControllers.Slider(k, RangeValues[k].min, RangeValues[k].max, 0.0001, value, "", '', container, function(val) {
+                    new wavesBasicControllers.Slider(k, RangeValues[k].min, RangeValues[k].max, 0.1, value, "", '', container, function(val) {
                         if (k === 'speed') {
                             self.playControl.speed = val;
                         } else {
@@ -730,7 +734,7 @@ var setupReverb = function() {
     var reverbUrl = "https://rawgit.com/burnson/Reverb.js/master/Library/TyndallBruceMonument.m4a";
     var reverbNode = audioContext.createReverbFromUrl(reverbUrl, function() {
         reverbGain = wavesurfer.backend.ac.createGain();
-        reverbGain.gain.value = 0.15;
+        reverbGain.gain.value = 0.5;
 
         reverbGain.connect(audioContext.destination);
         reverbNode.connect(reverbGain);
@@ -819,7 +823,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setupDropdowns();
         setupGrain(GRAIN_DEFAULT);
         setupEQ(EQ_DEFAULT);
-        //setupReverb();
+        setupReverb();
 
         //LOAD ABC TUNE
 

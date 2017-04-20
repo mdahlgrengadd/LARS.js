@@ -462,7 +462,8 @@ WaveSurfer.WebAudio = {
         this.playControl.loop = doLoop;
 
         this.scheduledPause = end;
-        //console.log("start: " + start + " end: " + end);    
+        //console.log("start: " + start + " end: " + end);   
+
         return {
             start: start,
             end: end

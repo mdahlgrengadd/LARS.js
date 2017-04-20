@@ -21,7 +21,7 @@ WaveSurfer.WebAudio = {
             // _MD_ // WaveSurfer.WebAudio.audioContext = new (
             // _MD_ //    window.AudioContext || window.webkitAudioContext
             // _MD_ //);
-            console.log("getAudioContext: " + this.wavesAudio.audioContext); // _MD_
+            //console.log("getAudioContext: " + this.wavesAudio.audioContext); // _MD_
             WaveSurfer.WebAudio.audioContext = this.wavesAudio.audioContext; // _MD_
         }
 
@@ -360,7 +360,7 @@ WaveSurfer.WebAudio = {
         //scheduledGranularEngine.connect(audioContext.destination);
 
         // create transport with play control and transported granular engine
-        console.log(self.transportedGranularEngine);
+        //console.log(self.transportedGranularEngine);
         self.transportedGranularEngine = new self.wavesAudio.GranularEngine({
             buffer: self.source.buffer,
             cyclic: true

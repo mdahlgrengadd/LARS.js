@@ -69,7 +69,7 @@ WaveSurfer.ELAN = {
     },
     loadJson: function(jsonObj) {
         var xml = jQuery.parseXML((x2js.json2xml_str(jsonObj)));
-        console.log(xml);
+        //console.log(xml);
 
         this.data = this.parseElan(xml);
         this.render();
@@ -215,7 +215,7 @@ WaveSurfer.ELAN = {
 
         align_anno.start = start;
         align_anno.end = end;
-        console.log("updated");
+        //console.log("updated");
         this.render();
 
     },
@@ -253,7 +253,7 @@ WaveSurfer.ELAN = {
 
         // table
         var table = document.createElement('table');
-        table.className = 'wavesurfer-annotations';
+        table.className = 'wavesurfer-annotations table table-striped table-hover';
 
         // head
         var thead = document.createElement('thead');

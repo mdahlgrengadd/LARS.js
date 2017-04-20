@@ -61,7 +61,7 @@ var wz_xs = [],
     wz_ymin = [],
     wz_ymax = [],
     bars = [];
-var opt, onYouTubeIframeAPIReady, msc_credits, media_height, times_arr, offset_js, endtime_js, abc_arr, lpRec;
+var opt, onYouTubeIframeAPIReady, msc_credits, media_height, times_arr, offset_js, /*endtime_js,*/ abc_arr, lpRec;
 //Vim Vree - ABC Web
 var muziek, curmtr, curtmp, msc_svgs, msc_gs, msc_wz, offset, mediaFnm, abcSave, elmed, scoreFnm, timerId = -1;
 var ybplayer, yubchk = 0,
@@ -167,7 +167,6 @@ function dolayout(abctxt) {
     }
 
     function timeLine(ts_p, voice_tb, music_types) {
-        console.log("TIMELINE!");
         var ts, g, ftempo = 384 * 120 / 60,
             dtmp, mdur = 0,
             mt = 0,
@@ -194,7 +193,7 @@ function dolayout(abctxt) {
                     mdur += ts.dur / ftempo;
                     break;
                 case BAR:
-                    ~console.log('bar_type: ' + ts.bar_type + ' text: ' + ts.text);
+                    //~console.log('bar_type: ' + ts.bar_type + ' text: ' + ts.text);
                     if (ts.time == lbtm) {
                         mreps[mreps.length - 1] += ts.bar_type;
                         break;
@@ -228,7 +227,7 @@ function dolayout(abctxt) {
         console.log("FIXME: Handle situaion when repeat bar is like this | : ... :| .... :|, instead of  | : ... :|: .... :|");
         //While go into infinite loop in the case above!
         while (1) {
-            console.log("Bars: " + bars.length + " line " + line);
+            //console.log("Bars: " + bars.length + " line " + line);
             var v = mtxts[mix - 1]; // volta is on the previous measure
             var r = v ? v.match(/[,\d]*(\d)/) : null; // last int is highest volta num
             if (r) {
@@ -827,8 +826,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         //LOAD ABC TUNE
 
-        endtime_js = wavesurfer.getDuration();
-        console.log(endtime_js);
+        //endtime_js = wavesurfer.getDuration();
+        //console.log(endtime_js);
         // read text from URL location
         var request = new XMLHttpRequest();
         request.open('GET', './assets/tune.abc', true);

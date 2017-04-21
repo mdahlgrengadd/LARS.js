@@ -46,7 +46,7 @@ var ELAN_ACTIONS = {
             var _lowest = Math.min(...selectedBars);
 
             deleteOldSelectedDIVs();
-            console.log(selectedRegion);
+            //console.log(selectedRegion);
             Waveform2Score(selectedRegion.start, selectedRegion.end, _lowest, _highest + 1);
             selectedDIVs = getDIVrange(_lowest, _highest);
         }

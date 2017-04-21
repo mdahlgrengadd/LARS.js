@@ -34,11 +34,39 @@ var GLOBAL_ACTIONS = {
     },
 
     'back': function() {
-        wavesurfer.skipBackward();
+        if (selectedRegion == null)
+            return wavesurfer.skipBackward();
+
+        var dur = selectedRegion.end - selectedRegion.start;
+        if (selectedRegion.start - dur < 0 ) {
+            dur = selectedRegion.start;
+        }
+
+        selectedRegion.update({
+            start: selectedRegion.start - dur,
+            end: selectedRegion.start
+        });
+        selectedRegion.updateRender();
+        wavesurfer.backend.seekTo(selectedRegion.start, selectedRegion.end);
+
     },
 
     'forth': function() {
-        wavesurfer.skipForward();
+        if (selectedRegion == null)
+            return wavesurfer.skipForward();
+
+        var dur = selectedRegion.end - selectedRegion.start;
+        if (dur + selectedRegion.end > wavesurfer.getDuration()) {
+            dur = wavesurfer.getDuration() - selectedRegion.end;
+        }
+
+        selectedRegion.update({
+            start: selectedRegion.end,
+            end: selectedRegion.end + dur
+        });
+        selectedRegion.updateRender();
+        wavesurfer.backend.seekTo(selectedRegion.start, selectedRegion.end);
+
     },
 
     'toggle-mute': function() {
@@ -154,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
     wavesurfer.on('region-dblclick', regionDblClicked);
     wavesurfer.on('region-click', regionClicked);
     wavesurfer.on('region-update-end', regionUpdated);
-    wavesurfer.drawer.on('click', clickOverride);// Override Wavesurfer.Drawer's click handler.
+    wavesurfer.drawer.on('click', clickOverride); // Override Wavesurfer.Drawer's click handler.
 
     // Do something when the clip is over
     wavesurfer.on('finish', function() {

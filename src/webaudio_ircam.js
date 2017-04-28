@@ -340,6 +340,53 @@ WaveSurfer.WebAudio = {
     },
 
     createSource: function() {
+        var self = this;
+
+        function setupMetronome() {
+            self.metronome = new self.wavesAudio.Metronome();
+            self.metronome.period = 60 / 86.49997514133682;
+            self.metronome.clickFreq = 666;
+            self.metronome.phase = 0;
+            self.metronome.connect(WaveSurfer.WebAudio.audioContext.destination);
+        }
+
+        function setupGranular() {
+
+            // get scheduler and create scheduled granular engine
+            self.scheduler = self.wavesAudio.getScheduler();
+            self.scheduledGranularEngine = new self.wavesAudio.GranularEngine({
+                buffer: self.source.buffer
+            });
+            //scheduledGranularEngine.connect(audioContext.destination);
+
+            // create transport with play control and transported granular engine
+            //console.log(self.transportedGranularEngine);
+            self.transportedGranularEngine = new self.wavesAudio.GranularEngine({
+                buffer: self.source.buffer,
+                cyclic: true
+            });
+
+
+
+            self.transportedGranularEngine.connect(self.analyser);
+
+            // Start the granularEngine used for pitch detection 
+            self.scheduler.add(self.scheduledGranularEngine);
+
+            //Good values for pitch detection 
+            self.scheduledGranularEngine.positionVar = 0.0;
+            self.transportedGranularEngine.positionVar = 0.01;
+            self.scheduledGranularEngine.periodAbs = 0.05;
+            self.transportedGranularEngine.periodAbs = 0.1;
+            self.scheduledGranularEngine.durationAbs = 0.5;
+            self.transportedGranularEngine.durationAbs = 0.2;
+            self.scheduledGranularEngine.resampling = 0.0;
+            self.transportedGranularEngine.resampling = 0.0;
+            self.scheduledGranularEngine.resamplingVar = 0.0;
+            self.transportedGranularEngine.resamplingVar = 0.0;
+
+        }
+
         this.disconnectSource();
         this.source = this.ac.createBufferSource();
 
@@ -351,39 +398,26 @@ WaveSurfer.WebAudio = {
         this.source.buffer = this.buffer;
         // _MD_ // this.source.connect(this.analyser);
 
-        var self = this;
-        // get scheduler and create scheduled granular engine
-        self.scheduler = self.wavesAudio.getScheduler();
-        self.scheduledGranularEngine = new self.wavesAudio.GranularEngine({
-            buffer: self.source.buffer
-        });
-        //scheduledGranularEngine.connect(audioContext.destination);
 
-        // create transport with play control and transported granular engine
-        //console.log(self.transportedGranularEngine);
-        self.transportedGranularEngine = new self.wavesAudio.GranularEngine({
-            buffer: self.source.buffer,
-            cyclic: true
-        });
-        
+        setupGranular();
+        setupMetronome();
 
-        self.playControl = new self.wavesAudio.PlayControl(self.transportedGranularEngine);
-        self.transportedGranularEngine.connect(self.analyser);
 
-        // Start the granularEngine used for pitch detection 
-        self.scheduler.add(self.scheduledGranularEngine);
+        // create transport and add engines
+        this.transport = new this.wavesAudio.Transport();
+        this.transport.add(this.transportedGranularEngine);
+        //this.transport.add(this.metronome);
+        //transport.add(playerEngine);
+        //transport.add(granularEngine);
+        //transport.add(segmentEngine);
+        //transport.add(positionDisplay);
 
-        //Good values for pitch detection 
-        self.scheduledGranularEngine.positionVar = 0.0;
-        self.transportedGranularEngine.positionVar = 0.01;
-        self.scheduledGranularEngine.periodAbs = 0.05;
-        self.transportedGranularEngine.periodAbs = 0.1;
-        self.scheduledGranularEngine.durationAbs = 0.5;
-        self.transportedGranularEngine.durationAbs = 0.2;
-        self.scheduledGranularEngine.resampling = 0.0;
-        self.transportedGranularEngine.resampling = 0.0;
-        self.scheduledGranularEngine.resamplingVar = 0.0;
-        self.transportedGranularEngine.resamplingVar = 0.0;
+        var scheduler = this.wavesAudio.getScheduler();
+        scheduler.add(this.metronome);
+
+
+        // create play control
+        this.playControl = new this.wavesAudio.PlayControl(this.transport);
 
     },
 
@@ -609,6 +643,13 @@ WaveSurfer.WebAudio = {
             this.playbackRate = value;
             //this.play();
         }
+    },
+    setMetronome: function(tempo, phase) {
+        if (tempo > 0) this.metronome.period = 60 / tempo;
+        //self.metronome.clickFreq = 666;
+        //if(phase != null) this.metronome.phase = phase;
+        console.log(this.metronome);
+        this.metronome.resetTime();
     }
 };
 

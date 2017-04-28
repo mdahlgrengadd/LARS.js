@@ -1,6 +1,7 @@
 import wavesurfer from './init.js';
 import {
-    selectedRegion // Global defining the current selection in the waveform.
+    selectedRegion,
+    utilRemoveRegion // Global defining the current selection in the waveform.
 } from './init.js';
 import { // Settings for granular synthesis and EQ.
     EQ_CELLO,
@@ -51,6 +52,9 @@ var ELAN_ACTIONS = {
             selectedDIVs = getDIVrange(_lowest, _highest);
         }
 
+    },
+    'swapVid': function() {
+        swapVideo();
     }
 };
 
@@ -60,6 +64,7 @@ var ELAN_ACTIONS = {
 var wz_xs = [],
     wz_ymin = [],
     wz_ymax = [],
+    tixbts = [],
     bars = [];
 var opt, onYouTubeIframeAPIReady, msc_credits, media_height, times_arr, offset_js, /*endtime_js,*/ abc_arr, lpRec;
 //Vim Vree - ABC Web
@@ -103,7 +108,6 @@ function dolayout(abctxt) {
         REST = 10,
         TEMPO = 14,
         BASE_LEN = 1536,
-        tixbts = [],
         mbeats = [],
         mreps = [],
         mdurs = [];
@@ -284,7 +288,7 @@ function dolayout(abctxt) {
             return '';
         }, // %%abc-include, unused
         'anno_start': svgInfo,
-        //'imagesize': 'width="'+SCORE_WIDTH+'" height="110"', 
+        //'imagesize': 'width="'+SCORE_WIDTH+'" height="110"', //FIXME: Doesnt work!
         'get_abcmodel': timeLine
     }
     abc2svg = new Abc(user);
@@ -530,8 +534,6 @@ function WijzerDIV(measure, line, x, y, width, height) { // create the music cur
 // This creates DIV overlays on the score sheet for click interaction and
 // acts as placeholders for the smaller wave segments. 
 function Waveform2Score(wave_start, wave_end, measure_start, measure_end) {
-    //wavesSegmentsArray = []; // clear array
-
     var wavesegment_options = {
         container: '#waveform',
         waveColor: '#dddddd',
@@ -544,6 +546,7 @@ function Waveform2Score(wave_start, wave_end, measure_start, measure_end) {
         normalize: true,
         loopSelection: false,
         renderer: 'Canvas',
+        partialRender: true,
         waveSegmentRenderer: 'Canvas',
         waveSegmentHeight: 50,
         height: 100,
@@ -572,7 +575,12 @@ function Waveform2Score(wave_start, wave_end, measure_start, measure_end) {
         wavesSegmentsArray.push(waveSegmentPos);
 
         var repris = tixlb[i][2];
-        elan.addAnnotation(ANNO_ID + i, wave_start + (i - measure_start) * measure_duration, wave_start + (i - measure_start + 1) * measure_duration, " Measure nr " + i, " Repetition " + repris);
+        var bpm = (60 / measure_duration) * tixbts[i - 1];
+        console.log("tixbts:" + tixbts[i - 1]);
+        elan.addAnnotation(ANNO_ID + i, wave_start + (i - measure_start) * measure_duration,
+            wave_start + (i - measure_start + 1) * measure_duration,
+            "Bar " + i + " Rep " + repris,
+            "BPM: " + bpm);
 
 
     }
@@ -741,6 +749,29 @@ var setupReverb = function() {
     });
 }
 
+var setupVideo = function () {
+    wavesurfer.videoDoubleBuffer = [videojs('my-player'), videojs('my-player2')];
+    wavesurfer.videoDoubleBuffer[0].volume(0);
+    wavesurfer.videoDoubleBuffer[1].volume(0);
+}
+
+var vid_active = 0;
+var swapVideo = function () {
+    vid_active = 1 - vid_active;
+
+    var vids = [document.getElementById("my-player"), document.getElementById("my-player2")];
+
+    vids[vid_active].style.visibility = 'visible';
+    vids[1-vid_active].style.visibility = 'hidden';
+
+    wavesurfer.videoDoubleBuffer[vid_active].play();
+    wavesurfer.videoDoubleBuffer[1-vid_active].pause();
+
+
+
+}
+
+
 //wavesurfer.on('ready', function() {
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -809,12 +840,14 @@ document.addEventListener('DOMContentLoaded', function() {
     elan.loadJson(jsonObj);
 
     wavesurfer.on('ready', function() {
+
         wavesurfer.clearRegions();
 
         // Regions
         if (wavesurfer.enableDragSelection) {
             wavesurfer.enableDragSelection({
-                color: 'rgba(41, 128, 185, 0.25)'
+                //color: 'rgba(41, 128, 185, 0.25)'
+                color: 'rgba(255, 60, 121, 0.64)'
             });
         }
 
@@ -823,6 +856,8 @@ document.addEventListener('DOMContentLoaded', function() {
         setupGrain(GRAIN_DEFAULT);
         setupEQ(EQ_DEFAULT);
         setupReverb();
+
+        setupVideo();
 
         //LOAD ABC TUNE
 
@@ -860,28 +895,59 @@ document.addEventListener('DOMContentLoaded', function() {
             region = null;
 
             if (annotation) {
+                //var audiotime = wavesurfer.getCurrentTime();
+                //console.log("time:"+audiotime);
+
+                //VIDEOJS
+                swapVideo();
+                wavesurfer.videoDoubleBuffer[1-vid_active].currentTime(annotation.end+0.1);
+
+                var bpm = 60 / (annotation.end - annotation.start) * tixbts[annotation.value - 1];
+                console.log(bpm);
+                wavesurfer.backend.setMetronome(bpm, 0);
                 // Highlight annotation table row
                 var row = elan.getAnnotationNode(annotation);
                 prevRow && prevRow.classList.remove('success');
                 prevRow = row;
                 row.classList.add('success');
-                var before = row.previousSibling;
-                if (before) {
-                    elan.container.scrollTop = before.offsetTop;
-                }
+                //var before = row.previousSibling;
+                //if (before) {
+                //elan.container.scrollTop = before.offsetTop;
+                //}
 
                 // Region
                 region = wavesurfer.addRegion({
+                    id: "playregion",
                     start: annotation.start,
                     end: annotation.end,
                     resize: false,
+                    drag: false,
                     color: 'rgba(223, 240, 216, 0.7)'
                 });
             }
+        } else if (region == null) {
+            region = wavesurfer.addRegion({
+                id: "playregion",
+                start: annotation.start,
+                end: annotation.end,
+                resize: false,
+                drag: false,
+                color: 'rgba(223, 240, 216, 0.7)'
+            });
         }
     };
 
     wavesurfer.on('audioprocess', onProgress);
+    wavesurfer.on('pause', function() {
+        wavesurfer.videoDoubleBuffer[0].pause();
+        wavesurfer.videoDoubleBuffer[1].pause();
+        //utilRemoveRegion(wavesurfer, 'playregion');
+        region && region.remove();
+        region = null;
 
+    });
+    wavesurfer.on('play', function() {
+        wavesurfer.videoDoubleBuffer[vid_active].play();
+    })
 
 });

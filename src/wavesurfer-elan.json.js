@@ -5,26 +5,6 @@ import X2JS from './lib/xml2js.min.js';
 
 // Create x2js instance with default config
 var x2js = new X2JS();
-/*
-var User = {
-    this.new_page = "";
-    this.read_file = function(fn) {
-        console.log("implement me!");
-        //return readFile(fn)
-    };
-    this.errmsg = function(msg, l, c) {
-        this.errtxt += msg + "\n"
-    };
-    this.img_out = function(str) {
-        console.log(str);
-        this.new_page += str
-    };
-    this.page_format = true
-}
-
-
-var user = new User;
-var abc = new Abc(user);*/
 
 WaveSurfer.ELAN = {
     Types: {
@@ -215,7 +195,15 @@ WaveSurfer.ELAN = {
 
         align_anno.start = start;
         align_anno.end = end;
-        //console.log("updated");
+
+        console.log("FIXME: add some error checking");
+        var tid = "TEXT"+align_anno.value;
+        var cid = "COMMENT"+align_anno.value;
+
+        this.data.annotations[tid].value = text;
+        this.data.annotations[cid].value = comment;
+
+
         this.render();
 
     },

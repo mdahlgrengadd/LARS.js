@@ -1,5 +1,5 @@
 'use strict';
-
+console.clear();
 // Create an instance
 //FIXME: Works, but dont now if this is correct way to do it?!
 
@@ -17,13 +17,13 @@ import * as WaveSegment from 'wavesurfer-elan-wave-segment';
 import * as InputStream from './wavesurfer.inputstream.js';
 
 var selectedRegion = null;
+
 var _regionFlag = false; // Seems to be needed to be able to decide if a region was clicked, or not.
 
 var wavesurfer = Object.create(WaveSurfer);
 
 // Zoom slider
 var slider;
-
 
 var GLOBAL_ACTIONS = {
     'play': function() {
@@ -78,16 +78,17 @@ var GLOBAL_ACTIONS = {
 document.addEventListener('DOMContentLoaded', function() {
     var options = {
         container: '#waveform',
-        waveColor: '#3498db',
-        progressColor: '#7f8c8d',
+        waveColor: 'white',//'rgba(255, 0, 106, 0.88)',//'purple',//'#3498db',
+        progressColor: 'rgba(255, 0, 106, 0.88)',//'#7f8c8d',
         loaderColor: 'purple',
         cursorColor: 'navy',
         selectionColor: '#d0e9c6',
         backend: 'WebAudio',
         normalize: false,
-        barWidth: 1,
+        barWidth: 2,
         loopSelection: false,
         renderer: 'MultiCanvas',
+        partialRender : true,
         waveSegmentRenderer: 'Canvas',
         waveSegmentHeight: 50,
         autoCenter: false,
@@ -103,8 +104,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Init
     wavesurfer.init(options);
     // Load audio from URL
-    wavesurfer.load('assets/demo.wav');
-    //wavesurfer.load('https://api.soundcloud.com/tracks/220790381/stream?client_id=0b4984c1ad516406425dab7232f983f3');
+    //wavesurfer.load('assets/demo.wav');
+    wavesurfer.load('https://api.soundcloud.com/tracks/82056139/stream?client_id=0b4984c1ad516406425dab7232f983f3');
 
 });
 
@@ -281,6 +282,10 @@ function unhighlightRegion(region) {
 // Because if you select/update a region, the click event will 
 // still be triggered after, and the default is to seek to "click" position.
 // That will also deselect a selection, which in this applicaton case is unwanted.
+//
+// FIXME: Maybe another solution:
+// Temporarily disable region-click events #1053
+// https://github.com/katspaugh/wavesurfer.js/issues/1053
 function clickOverride(event, progress) {
 
     if (_regionFlag) {
@@ -401,3 +406,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
 export default wavesurfer;
 export var selectedRegion;
+export var utilRemoveRegion;

@@ -34,21 +34,22 @@ WaveSurfer.ELANWaveSegment = {
         waveSegmentNormalizeTo: 'whole',
         waveSegmentBarHeight: 1,
         waveSegmentBorderWidth: 1,
-        pixelRatio:  window.devicePixelRatio || screen.deviceXDPI / screen.logicalXDPI
+        pixelRatio: window.devicePixelRatio || screen.deviceXDPI / screen.logicalXDPI
     },
 
     //object attributes necessary for maintaining state
-    ELAN:          null,  //handle to the ELAN plugin
-    wavesurfer:    null,  //handle to the wavesurfer instance
-    waveSegments: [],     //array of wavesurfer instances for each line
-    maxPeak:        0,    //the maximum wave peak
+    ELAN: null, //handle to the ELAN plugin
+    wavesurfer: null, //handle to the wavesurfer instance
+    waveSegments: [], //array of wavesurfer instances for each line
+    maxPeak: 0, //the maximum wave peak
+    fps: 25, //drawing update interval
 
 
     /**
      * Initialize the parameters and insert column and wave forms
      * @param params
      */
-    init: function (params) {
+    init: function(params) {
         // Extract relevant parameters (or defaults)
         this.params = WaveSurfer.util.extend(this.defaultParams, params);
         this.ELAN = params.ELAN;
@@ -56,6 +57,12 @@ WaveSurfer.ELANWaveSegment = {
         this.waveSegments = [];
         this.maxPeak = 0;
         this.wavesSegmentsArray = params.wavesSegmentsArray;
+
+
+        this.fpsInterval = 1000 / this.fps;
+        this.then = Date.now();
+        this.startTime = this.then;
+
 
 
         //determine what we will be normalizing to
@@ -104,7 +111,7 @@ WaveSurfer.ELANWaveSegment = {
         //tableRows[0].insertBefore(th, tableRows[0].firstChild.nextSibling);
 
         //loop through each row and add the table cell for the wave form
-        for(var i = 0; i < this.ELAN.renderedAlignable.length; i++) {
+        for (var i = 0; i < this.ELAN.renderedAlignable.length; i++) {
             var annotationRow = this.ELAN.getAnnotationNode(this.ELAN.renderedAlignable[i]);
 
             //create the td for the wave
@@ -130,7 +137,7 @@ WaveSurfer.ELANWaveSegment = {
      */
     getPeaksForTimeSegment: function(startTime, endTime) {
         var totalDuration = this.wavesurfer.backend.getDuration();
-        var segmentDuration  = endTime - startTime;
+        var segmentDuration = endTime - startTime;
 
         //calculate the total number of peak by splitting our segment
         var totalPeaks = totalDuration * this.params.waveSegmentPeaksPerSegment / segmentDuration;
@@ -143,11 +150,10 @@ WaveSurfer.ELANWaveSegment = {
         var peaks = this.wavesurfer.backend.getPeaks(totalPeaks, startPeak, endPeak);
         var shiftedPeaks = [];
         //shift the peak indexes back to 0
-        for(var i in peaks) {
-            if(this.params.waveSegmentNormalizeTo == 'whole') {
-                shiftedPeaks.push(peaks[i]/this.maxPeak);
-            }
-            else {
+        for (var i in peaks) {
+            if (this.params.waveSegmentNormalizeTo == 'whole') {
+                shiftedPeaks.push(peaks[i] / this.maxPeak);
+            } else {
                 shiftedPeaks.push(peaks[i]);
             }
         }
@@ -159,10 +165,10 @@ WaveSurfer.ELANWaveSegment = {
     appendWaveSegmentToElement: function(el, elanIndex) {
         var line = this.ELAN.renderedAlignable[elanIndex];
         var container = document.createElement('div');
-        var width = this.wavesSegmentsArray[elanIndex].width;//this.params.waveSegmentWidth;
+        var width = this.wavesSegmentsArray[elanIndex].width; //this.params.waveSegmentWidth;
 
         container.style.position = "absolute";
-        container.style.width = (width + (this.params.waveSegmentBorderWidth*2)).toString() + 'px';
+        container.style.width = (width + (this.params.waveSegmentBorderWidth * 2)).toString() + 'px';
         container.style.height = this.params.waveSegmentHeight.toString() + 'px';
         container.style.left = this.wavesSegmentsArray[elanIndex].left;
         container.style.top = this.wavesSegmentsArray[elanIndex].top;
@@ -200,29 +206,59 @@ WaveSurfer.ELANWaveSegment = {
      * Function to update the progress of the wave segments when time of the audio player is updated
      * @param time - the current time of the audio
      */
-    onProgress:  function(time) {
-        for(var i = 0; i < this.waveSegments.length; i++) {
-            var start = this.ELAN.renderedAlignable[i].start;
-            var end = this.ELAN.renderedAlignable[i].end;
-            var progress;
-            var width = this.wavesSegmentsArray[i].width;//this.params.waveSegmentWidth;
+    onProgress: function(time) {
+        var now = Date.now();
+        var elapsed = now - this.then;
+        // if enough time has elapsed, draw the next frame
+        if (elapsed <= this.fpsInterval)
+            return;
 
-            //player has not reached this segment yet - set not started
-            if(start > time) {
-                progress = 0;
-            }
-            //player has already passed this segment - set complete
-            else if(end < time) {
-                progress = width;
-            }
-            //find what percentage has been complete and set
-            else {
-                var completion = (time - start) / (end - start);
-                progress = completion * width;
+        var my = this;
+        requestAnimationFrame(function() {
+
+            for (var i = 0; i < my.waveSegments.length; i++) {
+                var start = my.ELAN.renderedAlignable[i].start;
+                var end = my.ELAN.renderedAlignable[i].end;
+                var progress;
+                var width = my.wavesSegmentsArray[i].width; //this.params.waveSegmentWidth;
+
+                //player has not reached this segment yet - set not started
+                if (start > time) {
+                    progress = 0;
+                }
+                //player has already passed this segment - set complete
+                else if (end < time) {
+                    progress = width;
+                }
+                //find what percentage has been complete and set
+                else {
+                    var completion = (time - start) / (end - start);
+                    progress = completion * width;
+                }
+
+
+
+
+
+
+
+
+                // Get ready for next frame by setting then=now, but also adjust for your
+                // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
+                my.then = now - (elapsed % my.fpsInterval);
+
+                my.waveSegments[i].updateProgress(progress);
+
+
+
+
+
+
             }
 
-            this.waveSegments[i].updateProgress(progress);
-        }
+
+        });
+
 
     }
 

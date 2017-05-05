@@ -42,8 +42,6 @@ WaveSurfer.ELANWaveSegment = {
     wavesurfer: null, //handle to the wavesurfer instance
     waveSegments: [], //array of wavesurfer instances for each line
     maxPeak: 0, //the maximum wave peak
-    fps: 25, //drawing update interval
-
 
     /**
      * Initialize the parameters and insert column and wave forms
@@ -57,13 +55,6 @@ WaveSurfer.ELANWaveSegment = {
         this.waveSegments = [];
         this.maxPeak = 0;
         this.wavesSegmentsArray = params.wavesSegmentsArray;
-
-
-        this.fpsInterval = 1000 / this.fps;
-        this.then = Date.now();
-        this.startTime = this.then;
-
-
 
         //determine what we will be normalizing to
         switch (this.params.waveSegmentNormalizeTo) {
@@ -207,59 +198,31 @@ WaveSurfer.ELANWaveSegment = {
      * @param time - the current time of the audio
      */
     onProgress: function(time) {
-        var now = Date.now();
-        var elapsed = now - this.then;
-        // if enough time has elapsed, draw the next frame
-        if (elapsed <= this.fpsInterval)
-            return;
 
-        var my = this;
-        requestAnimationFrame(function() {
+        for (var i = 0; i < this.waveSegments.length; i++) {
+            var start = this.ELAN.renderedAlignable[i].start;
+            var end = this.ELAN.renderedAlignable[i].end;
+            var progress;
+            var width = this.wavesSegmentsArray[i].width; //this.params.waveSegmentWidth;
 
-            for (var i = 0; i < my.waveSegments.length; i++) {
-                var start = my.ELAN.renderedAlignable[i].start;
-                var end = my.ELAN.renderedAlignable[i].end;
-                var progress;
-                var width = my.wavesSegmentsArray[i].width; //this.params.waveSegmentWidth;
-
-                //player has not reached this segment yet - set not started
-                if (start > time) {
-                    progress = 0;
-                }
-                //player has already passed this segment - set complete
-                else if (end < time) {
-                    progress = width;
-                }
-                //find what percentage has been complete and set
-                else {
-                    var completion = (time - start) / (end - start);
-                    progress = completion * width;
-                }
-
-
-
-
-
-
-
-
-                // Get ready for next frame by setting then=now, but also adjust for your
-                // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
-                my.then = now - (elapsed % my.fpsInterval);
-
-                my.waveSegments[i].updateProgress(progress);
-
-
-
-
-
-
+            //player has not reached this segment yet - set not started
+            if (start > time) {
+                progress = 0;
+            }
+            //player has already passed this segment - set complete
+            else if (end < time) {
+                progress = width;
+            }
+            //find what percentage has been complete and set
+            else {
+                var completion = (time - start) / (end - start);
+                progress = completion * width;
             }
 
 
-        });
+            this.waveSegments[i].updateProgress(progress);
 
-
+        }
     }
 
 

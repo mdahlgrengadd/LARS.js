@@ -6,9 +6,11 @@ import {
 import { // Settings for granular synthesis and EQ.
     EQ_CELLO,
     EQ_PERCUSSION,
+    EQ_FLAT,
     GrainDefs_Perc,
     GrainDefs_Cello,
     GrainDefs_Mix_Default,
+    GrainDefs_Mix_Default_allround,
     RangeValues
 } from './defs.js'
 
@@ -16,8 +18,8 @@ import wavesBasicControllers from 'waves-basic-controllers'; //wavesBasicControl
 
 import X2JS from './lib/xml2js.min.js'; // Soon to be used for XML -> JSON conversion (ELAN is XML).
 
-const GRAIN_DEFAULT = GrainDefs_Mix_Default;
-const EQ_DEFAULT = EQ_CELLO;
+const GRAIN_DEFAULT = GrainDefs_Mix_Default_allround;
+const EQ_DEFAULT = EQ_FLAT;
 
 const ANNO_ID = "BAR"; // prefix used for the ELAN annotations. Each measure will be an annotaion, ie BAR1, BAR2 ... BAR32...
 
@@ -53,8 +55,8 @@ var ELAN_ACTIONS = {
         }
 
     },
-    'swapVid': function() {
-        swapVideo();
+    'mute': function() {
+        wavesurfer.toggleMute()
     }
 };
 
@@ -467,7 +469,7 @@ function WijzerDIV(measure, line, x, y, width, height) { // create the music cur
     $(wijzer).css('height', height + "px");
     $(wijzer).css('width', width.toFixed(2) + "px");
     //$(wijzer).css ('background-color', 'lightblue');
-    $(wijzer).css('z-index', 1);
+    $(wijzer).css('z-index', measure *-1);
     $(wijzer).css('opacity', 0.35);
     $(wijzer).css('margin-bottom', '3px');
     //$(wijzer).css ('padding-top', '22px'); //center waveform on staff
@@ -602,17 +604,20 @@ var setupGrain = function(GrainDefs) {
             //console.log("Key: " + k);
             var value = GrainDefs[k];
             self.transportedGranularEngine[k] = value;
+            self.scheduledGranularEngine[k] = value;
 
             // Curry function. Probably better ways to
             // setup up the granular sliders, but can't 
             // figure it out at the moment.
             var sliderFactory = function(k) {
                 return function(val) {
-                    new wavesBasicControllers.Slider(k, RangeValues[k].min, RangeValues[k].max, 0.1, value, "", '', container, function(val) {
+                    new wavesBasicControllers.Slider(k, RangeValues[k].min, RangeValues[k].max, 0.001, value, "", '', container, function(val) {
                         if (k === 'speed') {
-                            self.playControl.speed = val;
+                            //self.playControl.speed = val;
+                            wavesurfer.setPlaybackRate(val);
                         } else {
                             self.transportedGranularEngine[k] = val;
+                            self.scheduledGranularEngine[k] = val;
                         }
                     });
 
@@ -737,11 +742,12 @@ var setupReverb = function() {
     var audioContext = wavesurfer.backend.getAudioContext();
     reverbjs.extend(audioContext);
     // 2) Load the impulse response; upon load, connect it to the audio output.
-    //var reverbUrl = "http://reverbjs.org/Library/KinoullAisle.m4a";
+    
     var reverbUrl = "https://rawgit.com/burnson/Reverb.js/master/Library/TyndallBruceMonument.m4a";
+    //var reverbUrl = "https://rawgit.com/burnson/Reverb.js/master/Library/KinoullAisle.m4a";
     var reverbNode = audioContext.createReverbFromUrl(reverbUrl, function() {
         reverbGain = wavesurfer.backend.ac.createGain();
-        reverbGain.gain.value = 0.5;
+        reverbGain.gain.value = 0.1;
 
         reverbGain.connect(audioContext.destination);
         reverbNode.connect(reverbGain);
@@ -749,35 +755,12 @@ var setupReverb = function() {
     });
 }
 
-var setupVideo = function () {
-    wavesurfer.videoDoubleBuffer = [videojs('my-player'), videojs('my-player2')];
-    wavesurfer.videoDoubleBuffer[0].volume(0);
-    wavesurfer.videoDoubleBuffer[1].volume(0);
-}
-
-var vid_active = 0;
-var swapVideo = function () {
-    vid_active = 1 - vid_active;
-
-    var vids = [document.getElementById("my-player"), document.getElementById("my-player2")];
-
-    vids[vid_active].style.visibility = 'visible';
-    vids[1-vid_active].style.visibility = 'hidden';
-
-    wavesurfer.videoDoubleBuffer[vid_active].play();
-    wavesurfer.videoDoubleBuffer[1-vid_active].pause();
-
-
-
-}
-
-
 //wavesurfer.on('ready', function() {
 document.addEventListener('DOMContentLoaded', function() {
 
     /* ELAN */
     elan.on('select', function(start, end) {
-        wavesurfer.backend.play(start, end);
+        //wavesurfer.backend.play(start, end);
     });
 
     //set up listener for when elan is done
@@ -857,8 +840,6 @@ document.addEventListener('DOMContentLoaded', function() {
         setupEQ(EQ_DEFAULT);
         setupReverb();
 
-        setupVideo();
-
         //LOAD ABC TUNE
 
         //endtime_js = wavesurfer.getDuration();
@@ -898,13 +879,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 //var audiotime = wavesurfer.getCurrentTime();
                 //console.log("time:"+audiotime);
 
-                //VIDEOJS
-                swapVideo();
-                wavesurfer.videoDoubleBuffer[1-vid_active].currentTime(annotation.end+0.1);
-
                 var bpm = 60 / (annotation.end - annotation.start) * tixbts[annotation.value - 1];
-                console.log(bpm);
-                wavesurfer.backend.setMetronome(bpm, 0);
+                //console.log(bpm);
+                //wavesurfer.backend.setMetronome(bpm, 0);
                 // Highlight annotation table row
                 var row = elan.getAnnotationNode(annotation);
                 prevRow && prevRow.classList.remove('success');
@@ -939,15 +916,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     wavesurfer.on('audioprocess', onProgress);
     wavesurfer.on('pause', function() {
-        wavesurfer.videoDoubleBuffer[0].pause();
-        wavesurfer.videoDoubleBuffer[1].pause();
-        //utilRemoveRegion(wavesurfer, 'playregion');
         region && region.remove();
         region = null;
 
     });
-    wavesurfer.on('play', function() {
-        wavesurfer.videoDoubleBuffer[vid_active].play();
-    })
 
 });

@@ -5,7 +5,9 @@
             alias: {
               'wavesurfer': path.resolve(__dirname, './node_modules/wavesurfer.js/dist/wavesurfer.js'),
               'wavesurfer-regions': path.resolve(__dirname, './node_modules/wavesurfer.js/dist/plugin/wavesurfer.regions.min.js'),
-              'wavesurfer-timeline': path.resolve(__dirname, './node_modules/wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js'),
+              //'wavesurfer-timeline': path.resolve(__dirname, './node_modules/wavesurfer.js/dist/plugin/wavesurfer.timeline.min.js'),
+              'wavesurfer-timeline': path.resolve(__dirname, './src/wavesurfer.timeline.js'),
+              'wavesurfer-minimap': path.resolve(__dirname, './node_modules/wavesurfer.js/dist/plugin/wavesurfer.minimap.min.js'),
               'wavesurfer-elan': path.resolve(__dirname, './node_modules/wavesurfer.js/dist/plugin/wavesurfer.elan.min.js'),
               'wavesurfer-elan-wave-segment': path.resolve(__dirname, './src/wavesurfer.elan-wave-segment.js'),
               'waves-basic-controllers': path.resolve(__dirname, './node_modules/waves-ui/examples/assets/waves-basic-controllers.min.js')

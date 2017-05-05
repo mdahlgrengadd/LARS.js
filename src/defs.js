@@ -2,7 +2,7 @@
 
 //Hardcoded defaults
 export const RangeValues = {
-    speed: { min: 0.5,max: 4},
+    speed: { min: 0.001 , max: 4},
     periodAbs: { min: 0.001,max: 1},
     periodRel: { min: 0,max: 1},
     periodVar: { min: 0,max: 1},
@@ -367,6 +367,29 @@ export const GrainDefs_Mix_Default = {
     cyclic: true,
 }
 
+//even across speeds
+export const GrainDefs_Mix_Default_allround = {
+    speed: 1.0,
+    periodAbs: 0.00005,
+    periodRel: 0.087,
+    periodVar: 0.052,
+    position: 0.0,
+    positionVar: 0.0,
+    durationAbs: 0.43,
+    durationRel: 0.0,
+    attackAbs: 1.0,
+    attackRel: 0.0,
+    releaseAbs: 4.0,
+    releaseRel: 0.0,
+    releaseShape: 'lin',
+    expRampOffset: 0.0001,
+    resampling: 0.0,
+    resamplingVar: 0,
+    gain: 0.1,
+    centered: true,
+    cyclic: true,
+}
+
 export const GrainDefs_Perc2 = {
     periodAbs: 0.004,
     periodRel: 0,
@@ -557,5 +580,45 @@ export const EQ_MIX = [{
     value: 8
 }];
 
-
+export const EQ_FLAT = [{
+    f: 32,
+    type: 'lowshelf',
+    value: 0
+}, {
+    f: 64,
+    type: 'peaking',
+    value: 0
+}, {
+    f: 125,
+    type: 'peaking',
+    value: 0
+}, {
+    f: 250,
+    type: 'peaking',
+    value: 0
+}, {
+    f: 500,
+    type: 'peaking',
+    value: 0
+}, {
+    f: 1000,
+    type: 'peaking',
+    value: 0
+}, {
+    f: 2000,
+    type: 'peaking',
+    value: 0
+}, {
+    f: 4000,
+    type: 'peaking',
+    value: 0
+}, {
+    f: 8000,
+    type: 'peaking',
+    value: 0
+}, {
+    f: 16000,
+    type: 'highshelf',
+    value: 0
+}];
 

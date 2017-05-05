@@ -6,15 +6,16 @@ console.clear();
 //import * as WaveSurfer from 'wavesurfer'; 
 // _MD_ Don't now if this is correct way to do it?!
 import WaveSurferES6 from './webaudio_ircam.js';
-var WaveSurfer = WaveSurferES6.WaveSurfer;
+var WaveSurfer = WaveSurferES6.WaveSurfer;//var WaveSurfer = require("wavesurfer");
 import {
     EQ_PERCUSSION as EQ
 } from './defs.js'
 import * as Region from 'wavesurfer-regions';
-import * as TimeLine from 'wavesurfer-timeline'
+import * as TimeLine from 'wavesurfer-timeline';
+//import * as MiniMap from 'wavesurfer-minimap';
 import * as ELAN from './wavesurfer-elan.json.js';
 import * as WaveSegment from 'wavesurfer-elan-wave-segment';
-import * as InputStream from './wavesurfer.inputstream.js';
+//import * as InputStream from './wavesurfer.inputstream.js';
 
 var selectedRegion = null;
 
@@ -38,7 +39,7 @@ var GLOBAL_ACTIONS = {
             return wavesurfer.skipBackward();
 
         var dur = selectedRegion.end - selectedRegion.start;
-        if (selectedRegion.start - dur < 0 ) {
+        if (selectedRegion.start - dur < 0) {
             dur = selectedRegion.start;
         }
 
@@ -78,17 +79,17 @@ var GLOBAL_ACTIONS = {
 document.addEventListener('DOMContentLoaded', function() {
     var options = {
         container: '#waveform',
-        waveColor: 'white',//'rgba(255, 0, 106, 0.88)',//'purple',//'#3498db',
-        progressColor: 'rgba(255, 0, 106, 0.88)',//'#7f8c8d',
+        waveColor: 'black', //'rgba(255, 0, 106, 0.88)',//'purple',//'#3498db',
+        progressColor: 'rgba(255, 0, 106, 0.88)', //'#7f8c8d',
         loaderColor: 'purple',
         cursorColor: 'navy',
         selectionColor: '#d0e9c6',
         backend: 'WebAudio',
-        normalize: false,
-        barWidth: 2,
+        normalize: true,
+        //barWidth: 2,
         loopSelection: false,
         renderer: 'MultiCanvas',
-        partialRender : true,
+        partialRender: true,
         waveSegmentRenderer: 'Canvas',
         waveSegmentHeight: 50,
         autoCenter: false,
@@ -104,8 +105,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Init
     wavesurfer.init(options);
     // Load audio from URL
-    //wavesurfer.load('assets/demo.wav');
-    wavesurfer.load('https://api.soundcloud.com/tracks/82056139/stream?client_id=0b4984c1ad516406425dab7232f983f3');
+    wavesurfer.load('assets/demo.wav');
+    //wavesurfer.load('https://api.soundcloud.com/tracks/82056139/stream?client_id=0b4984c1ad516406425dab7232f983f3');    
+    //wavesurfer.load('https://api.soundcloud.com/tracks/131615092/stream?client_id=0b4984c1ad516406425dab7232f983f3');
+    //wavesurfer.load('https://api.soundcloud.com/tracks/266600258/stream?client_id=0b4984c1ad516406425dab7232f983f3');
+    //wavesurfer.load('https://api.soundcloud.com/tracks/238570095/stream?client_id=0b4984c1ad516406425dab7232f983f3');
+    //wavesurfer.load('https://api.soundcloud.com/tracks/196668498/stream?client_id=0b4984c1ad516406425dab7232f983f3');
+    //wavesurfer.load('https://api.soundcloud.com/tracks/62955492/stream?client_id=0b4984c1ad516406425dab7232f983f3');//czardas
 
 });
 
@@ -162,11 +168,39 @@ document.addEventListener('DOMContentLoaded', function() {
         var timeline = Object.create(WaveSurfer.Timeline);
 
         timeline.init({
+            primaryColor: '#800',
+            secondaryColor: '#808000',
+            primaryFontColor: '#800',
+            secondaryFontColor: '#880',
             wavesurfer: wavesurfer,
             container: "#wave-timeline"
         });
+
+        // Custom click handling
         wavesurfer.drawer.un('click');
         wavesurfer.drawer.on('click', clickOverride);
+
+        // when hovering over waveform -> seek to this position
+
+        $("#waveform").on('mousemove', function(e) {
+            
+            //if (wavesurfer.isPlaying()) return;
+            var prog = wavesurfer.drawer.handleEvent(e);
+            //console.log("progress: " + prog);
+            wavesurfer.seekTo(prog);
+            $("#img-tooltip").css({
+                top: e.pageY-50,
+                left: e.pageX,
+            }).attr('data-original-title',wavesurfer.backend.getPlayedTime());
+            $('[data-toggle="tooltip"]').tooltip('show')
+        })
+
+        $("#waveform").on('mouseleave', function(e) {
+            $('[data-toggle="tooltip"]').tooltip('hide')
+        })
+
+
+
     });
 
     wavesurfer.on('destroy', function() {

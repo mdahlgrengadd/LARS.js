@@ -18,6 +18,7 @@ WaveSurfer.WebAudio = {
     getAudioContext: function() {
         if (!WaveSurfer.WebAudio.audioContext) {
             this.wavesAudio = require('waves-audio'); // _MD_
+            this.wavesLoaders = require('waves-loaders');
             // _MD_ // WaveSurfer.WebAudio.audioContext = new (
             // _MD_ //    window.AudioContext || window.webkitAudioContext
             // _MD_ //);
@@ -341,15 +342,71 @@ WaveSurfer.WebAudio = {
 
     createSource: function() {
         var self = this;
+/*
+        function setupSegmentPlayer() {
 
+            var audioContext = self.wavesAudio.audioContext;
+            var loader = new self.wavesLoaders.SuperLoader(); // instantiate loader
+
+            var assets = [
+                "./assets/3_4_Guitar30bpm96khz32bit.wav",
+                "./assets/3_4_guitar-loop.json"
+            ];
+
+            // load audio and marker files
+            loader.load(assets).then(function(loaded) {
+                var audioBuffer = loaded[0];
+                var markerBuffer = loaded[1];
+
+                self.scheduledSegmentEngine.connect(WaveSurfer.WebAudio.audioContext.destination);
+
+                // create transport with play control and transported segment engine
+                var _chord = markerBuffer.VI;
+                var loopstart = _chord[0];
+                var loopend = _chord[_chord.length - 1];
+
+                self.transportedSegmentEngine = new self.wavesAudio.SegmentEngine({
+                    buffer: audioBuffer,
+                    positionArray: _chord,
+                    durationArray: markerBuffer.duration,
+                    offsetArray: markerBuffer.offset,
+                    durationRel: 0.95,
+                    releaseAbs: 0.005,
+                    releaseRel: 0.005,
+                    cyclic: true,
+
+                });
+
+                self.transportedSegmentEngine.connect(WaveSurfer.WebAudio.audioContext.destination);
+                //self.transport.add(self.transportedSegmentEngine);
+
+
+                var playControl = new self.wavesAudio.PlayControl(self.transportedSegmentEngine);
+
+                console.log(loopend);
+                playControl.setLoopBoundaries(loopstart, loopend);
+                playControl.loop = true;
+
+
+                playControl.speed = 1.0 * 2.0;
+                playControl.seek(loopstart);
+                
+                playControl.start();
+            });
+
+
+        }
+*/
+/*
         function setupMetronome() {
             self.metronome = new self.wavesAudio.Metronome();
             self.metronome.period = 60 / 86.49997514133682;
             self.metronome.clickFreq = 666;
             self.metronome.phase = 0;
+            self.metronome.gain = 0;
             self.metronome.connect(WaveSurfer.WebAudio.audioContext.destination);
         }
-
+*/
         function setupGranular() {
 
             // get scheduler and create scheduled granular engine
@@ -357,7 +414,7 @@ WaveSurfer.WebAudio = {
             self.scheduledGranularEngine = new self.wavesAudio.GranularEngine({
                 buffer: self.source.buffer
             });
-            //scheduledGranularEngine.connect(audioContext.destination);
+            self.scheduledGranularEngine.connect(self.analyser);
 
             // create transport with play control and transported granular engine
             //console.log(self.transportedGranularEngine);
@@ -368,22 +425,12 @@ WaveSurfer.WebAudio = {
 
 
 
-            self.transportedGranularEngine.connect(self.analyser);
+            //self.transportedGranularEngine.connect(self.analyser);
+            //self.transport.add(self.transportedGranularEngine);
 
-            // Start the granularEngine used for pitch detection 
             self.scheduler.add(self.scheduledGranularEngine);
 
-            //Good values for pitch detection 
-            self.scheduledGranularEngine.positionVar = 0.0;
-            self.transportedGranularEngine.positionVar = 0.01;
-            self.scheduledGranularEngine.periodAbs = 0.05;
-            self.transportedGranularEngine.periodAbs = 0.1;
-            self.scheduledGranularEngine.durationAbs = 0.5;
-            self.transportedGranularEngine.durationAbs = 0.2;
-            self.scheduledGranularEngine.resampling = 0.0;
-            self.transportedGranularEngine.resampling = 0.0;
-            self.scheduledGranularEngine.resamplingVar = 0.0;
-            self.transportedGranularEngine.resamplingVar = 0.0;
+
 
         }
 
@@ -399,21 +446,19 @@ WaveSurfer.WebAudio = {
         // _MD_ // this.source.connect(this.analyser);
 
 
-        setupGranular();
-        setupMetronome();
-
-
         // create transport and add engines
         this.transport = new this.wavesAudio.Transport();
-        this.transport.add(this.transportedGranularEngine);
+
+        setupGranular();
+        //setupMetronome();
+        //setupSegmentPlayer();
+
+
+
         //this.transport.add(this.metronome);
-        //transport.add(playerEngine);
-        //transport.add(granularEngine);
-        //transport.add(segmentEngine);
-        //transport.add(positionDisplay);
 
         var scheduler = this.wavesAudio.getScheduler();
-        scheduler.add(this.metronome);
+        //scheduler.add(this.metronome);
 
 
         // create play control
@@ -492,10 +537,12 @@ WaveSurfer.WebAudio = {
             this.playControl.setLoopBoundaries(start, end);
         }
 
+
         this.playControl.seek(start);
         this.playControl.loop = doLoop;
 
         this.scheduledPause = end;
+
         //console.log("start: " + start + " end: " + end);   
 
         return {
@@ -643,14 +690,15 @@ WaveSurfer.WebAudio = {
             this.playbackRate = value;
             //this.play();
         }
-    },
+    }/*,
     setMetronome: function(tempo, phase) {
-        if (tempo > 0) this.metronome.period = 60 / tempo;
+        if (tempo > 0) this.metronome.period = (60 / tempo) / this.playbackRate;
+        console.log("met: " + this.metronome.period + " - playbackRate: " + this.playbackRate);
         //self.metronome.clickFreq = 666;
         //if(phase != null) this.metronome.phase = phase;
-        console.log(this.metronome);
+        //console.log(this.metronome);
         this.metronome.resetTime();
-    }
+    }*/
 };
 
 WaveSurfer.WebAudio.state = {};

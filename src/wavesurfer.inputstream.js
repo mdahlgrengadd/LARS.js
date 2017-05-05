@@ -1,4 +1,12 @@
 'use strict';
+
+/*
+
+This was an experiment with loading sounds from <audio> tags into wavesurfer.
+It now works in wavesurfer without this hack.
+
+*/
+
 import * as WaveSurfer from 'wavesurfer'; // _MD_ Don't now if this is correct way to do it?!
 
 
